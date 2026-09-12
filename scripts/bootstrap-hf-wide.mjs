@@ -3,61 +3,64 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-const queryGroups = [
-  ["lora", "adapter", "peft", "diffusers lora"],
-  ["qwen lora", "qwen2 lora", "qwen2.5 lora", "qwen3 lora", "qwen image lora", "qwen image edit lora"],
-  ["llama lora", "llama 3 lora", "llama 3.1 lora", "llama 3.2 lora", "gemma lora", "gemma 2 lora", "gemma 3 lora", "mistral lora"],
-  ["japanese lora", "日本語 lora", "japanese roleplay lora", "japanese character lora", "roleplay lora", "character lora", "persona lora", "chat lora"],
-  ["coding lora", "code lora", "reasoning lora", "math lora", "instruction lora", "translation lora", "creative writing lora"],
-  ["flux lora", "flux.1 lora", "flux.2 lora", "sdxl lora", "stable diffusion lora", "sd3 lora", "illustrious lora", "pony lora"],
-  ["style lora", "anime lora", "realistic lora", "photo lora", "portrait lora", "character image lora", "concept lora", "control lora"],
-  ["wan lora", "wan 2.1 lora", "wan 2.2 lora", "ltx lora", "video lora", "motion lora", "camera lora", "animation lora"],
-  ["audio lora", "music lora", "voice lora", "speech lora", "tts lora"],
-  ["nsfw lora", "uncensored lora"]
-];
-
-const queries = [...new Set(queryGroups.flat())];
 const headers = { Accept: "application/json", ...(process.env.HF_TOKEN ? { Authorization: `Bearer ${process.env.HF_TOKEN}` } : {}) };
-const maxPerQuery = Number(process.env.HF_WIDE_PER_QUERY || 80);
-const maxCandidates = Number(process.env.HF_WIDE_MAX || 4000);
-const adapterPattern = /lora|adapter|peft/i;
+const catalogFilters = (process.env.HF_CATALOG_FILTERS || "lora,peft").split(",").map((value) => value.trim()).filter(Boolean);
+const maxCandidates = Math.max(0, Number(process.env.HF_CATALOG_MAX || 0)); // 0 = no artificial cap
+const pageSize = 500;
+const importBatchSize = 100;
 const text = (value, fallback = "") => String(value ?? fallback).replace(/\u0000/g, "").trim();
 const sqlText = (value) => `'${text(value).replaceAll("'", "''")}'`;
+
+function parseNextLink(header) {
+  if (!header) return null;
+  for (const part of header.split(",")) {
+    const match = part.match(/<([^>]+)>;\s*rel="?next"?/i);
+    if (match) return match[1];
+  }
+  return null;
+}
 
 function familyFrom(base, id) {
   const value = `${base} ${id}`.toLowerCase();
   if (value.includes("qwen")) return "Qwen";
   if (value.includes("llama")) return "Llama";
   if (value.includes("gemma")) return "Gemma";
+  if (value.includes("mistral")) return "Mistral";
   if (value.includes("flux")) return "FLUX";
   if (value.includes("wan")) return "Wan";
   if (value.includes("ltx")) return "LTX";
+  if (value.includes("stable-diffusion-xl") || /\bsdxl\b/i.test(value)) return "SDXL";
+  if (value.includes("illustrious")) return "Illustrious";
+  if (value.includes("pony")) return "Pony";
   return "Other";
 }
 
 function typeFrom(model) {
   const value = `${model.pipeline_tag || ""} ${(model.tags || []).join(" ")} ${model.library_name || ""} ${model.id || ""}`.toLowerCase();
-  if (/video|wan|ltx/.test(value)) return "Video";
+  if (/video|wan|ltx|hunyuanvideo|cogvideo/.test(value)) return "Video";
   if (/audio|music|voice|speech|tts/.test(value)) return "Audio";
-  if (/image|diffusers|flux|stable-diffusion|sdxl|sd3|illustrious|pony/.test(value)) return "Image";
+  if (/image|diffusers|flux|stable-diffusion|sdxl|sd3|illustrious|pony|qwen-image/.test(value)) return "Image";
   return "LLM";
 }
 
-function purposeFrom(model, sourceQuery) {
-  const value = `${model.id || ""} ${(model.tags || []).join(" ")} ${sourceQuery}`.toLowerCase();
+function purposeFrom(model) {
+  const value = `${model.id || ""} ${(model.tags || []).join(" ")} ${JSON.stringify(model.cardData || {})}`.toLowerCase();
   const hits = [];
-  if (/japanese|日本語|ja[-_ ]/.test(value)) hits.push("Japanese");
+  if (/japanese|日本語|language:ja|\bja[-_ ]/.test(value)) hits.push("Japanese");
   if (/role.?play|character|persona|chat/.test(value)) hits.push("Character");
   if (/coding|code|program|developer/.test(value)) hits.push("Coding");
   if (/reason|math|cot/.test(value)) hits.push("Reasoning");
-  if (/style|anime|realistic|photo|portrait|concept|illustration|texture/.test(value)) hits.push("Style");
+  if (/style|anime|realistic|photo|portrait|concept|illustration|texture|artist/.test(value)) hits.push("Style");
   if (/motion|video|camera|animation|transition/.test(value)) hits.push("Motion");
   return [...new Set(hits)].slice(0, 4).join(", ") || (typeFrom(model) === "Video" ? "Motion" : typeFrom(model) === "Image" ? "Style" : "General");
 }
 
 function baseFrom(model) {
-  const tagged = (model.tags || []).find((tag) => /^base_model:(adapter:)?/i.test(tag));
-  return text(model.cardData?.base_model || tagged?.replace(/^base_model:(adapter:)?/i, "") || "Unknown base");
+  const tags = model.tags || [];
+  const tagged = tags.find((tag) => /^base_model:(adapter:)?/i.test(tag));
+  const cardBase = model.cardData?.base_model;
+  const normalizedCardBase = Array.isArray(cardBase) ? cardBase[0] : cardBase;
+  return text(normalizedCardBase || tagged?.replace(/^base_model:(adapter:)?/i, "") || "Unknown base");
 }
 
 function licenseFrom(model) {
@@ -71,55 +74,40 @@ function commercialUse(license) {
   return /apache|mit|bsd|cc-by|gpl|lgpl|mpl|public.?domain/.test(value) ? 1 : 0;
 }
 
-async function fetchList(query, sort) {
-  const url = `https://huggingface.co/api/models?search=${encodeURIComponent(query)}&limit=100&sort=${sort}&direction=-1&full=true`;
-  const response = await fetch(url, { headers });
-  if (!response.ok) throw new Error(`${response.status} ${query} ${sort}`);
-  return response.json();
+function filePaths(model) {
+  return (model.siblings || []).map((file) => text(file.rfilename || file.path)).filter(Boolean);
 }
 
-async function collect() {
-  const seen = new Map();
-  for (const query of queries) {
-    for (const sort of ["downloads", "lastModified"]) {
-      let list = [];
-      try { list = await fetchList(query, sort); }
-      catch (error) { console.warn(`Search failed: ${error.message}`); continue; }
-      let accepted = 0;
-      for (const model of list) {
-        const id = text(model.id);
-        const tags = (model.tags || []).join(" ");
-        if (!id || !adapterPattern.test(`${id} ${tags}`)) continue;
-        if (!seen.has(id)) seen.set(id, { ...model, sourceQuery: query });
-        accepted += 1;
-        if (accepted >= maxPerQuery || seen.size >= maxCandidates) break;
-      }
-      if (seen.size >= maxCandidates) return [...seen.values()];
-    }
-  }
-  return [...seen.values()];
+function looksLikeLoRA(model) {
+  const tags = (model.tags || []).join(" ");
+  const files = filePaths(model);
+  const hasConfig = files.some((path) => /(^|\/)adapter_config\.json$/i.test(path));
+  const hasWeights = files.some((path) => /(?:lora|adapter|diffusion_pytorch_model|pytorch_lora_weights).*\.(?:safetensors|bin|pt)$/i.test(path)) || files.some((path) => /\.safetensors$/i.test(path));
+  return /(^|\s|,)lora(\s|,|$)/i.test(tags) || (hasConfig && hasWeights) || files.some((path) => /lora/i.test(path) && /\.safetensors$/i.test(path));
 }
 
 function statement(model) {
   const id = text(model.id);
   const base = baseFrom(model);
   const type = typeFrom(model);
-  const purpose = purposeFrom(model, model.sourceQuery || "");
+  const purpose = purposeFrom(model);
   const license = licenseFrom(model);
   const downloads = Number(model.downloads || 0);
   const likes = Number(model.likes || 0);
   const updated = text(model.lastModified, new Date().toISOString());
   const slug = id.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-  const safetensors = (model.siblings || []).some((file) => /\.safetensors$/i.test(file.rfilename || "")) || (model.tags || []).some((tag) => /safetensors/i.test(tag)) ? 1 : 0;
+  const files = filePaths(model);
+  const safetensors = files.some((path) => /\.safetensors$/i.test(path)) || (model.tags || []).some((tag) => /safetensors/i.test(tag)) ? 1 : 0;
   const quality = Math.min(100, Math.round((Math.log10(downloads + 1) * 6 + Math.log10(likes + 1) * 7) * 10) / 10);
-  const description = `Hugging Faceで公開されている ${id} のLoRA/adapter。詳細な使い方と条件は元のモデルカードで確認できます。`;
-  const bestFor = purpose === "General" ? "モデルカードで用途を確認" : `${purpose.split(", ")[0]}向け`;
+  const description = `LoRA or adapter hosted on Hugging Face. LoRA Hunt normalizes its base model, purpose, files, popularity, and compatibility metadata for search.`;
+  const bestFor = purpose === "General" ? "Check the model card for intended use" : `${purpose.split(", ")[0]} workflows`;
   const columns = [sqlText(id), sqlText(slug), sqlText(id.split("/").pop() || id), sqlText(id.split("/")[0] || "unknown"), sqlText(`https://huggingface.co/${id}`), sqlText(type), sqlText(familyFrom(base, id)), sqlText(base), sqlText(purpose), sqlText(description), sqlText(bestFor), sqlText(license), String(commercialUse(license)), "NULL", "NULL", String(downloads), String(likes), "NULL", "0", "1", String(safetensors), "0", sqlText("[]"), sqlText("[]"), sqlText(updated), String(quality)];
   return `INSERT INTO models (id, slug, name, author, hf_url, type, base_family, base_model, purpose, description, best_for, license, commercial_use, lora_rank, file_size_mb, downloads, likes, rating, review_count, docs_quality, safetensors, content_warning, content_flags, compatibility_summary, updated_at, quality_score) VALUES (${columns.join(", ")}) ON CONFLICT(id) DO UPDATE SET downloads=excluded.downloads, likes=excluded.likes, updated_at=excluded.updated_at, base_family=CASE WHEN models.base_family='Other' THEN excluded.base_family ELSE models.base_family END, base_model=CASE WHEN models.base_model='Unknown base' THEN excluded.base_model ELSE models.base_model END, purpose=CASE WHEN models.purpose='General' THEN excluded.purpose ELSE models.purpose END, license=CASE WHEN models.license='Unknown' THEN excluded.license ELSE models.license END, safetensors=MAX(models.safetensors, excluded.safetensors), quality_score=MAX(models.quality_score, excluded.quality_score);`;
 }
 
 function runD1(sql) {
-  const directory = mkdtempSync(join(tmpdir(), "lora-hunt-wide-"));
+  if (!sql.trim()) return;
+  const directory = mkdtempSync(join(tmpdir(), "lora-hunt-catalog-"));
   const file = join(directory, "import.sql");
   writeFileSync(file, sql, "utf8");
   try {
@@ -128,10 +116,46 @@ function runD1(sql) {
   } finally { rmSync(directory, { recursive: true, force: true }); }
 }
 
-const candidates = await collect();
-console.log(`Collected ${candidates.length} unique LoRA/adapter candidates from ${queries.length} search phrases.`);
-for (let index = 0; index < candidates.length; index += 75) {
-  runD1(candidates.slice(index, index + 75).map(statement).join("\n"));
-  console.log(`Imported ${Math.min(index + 75, candidates.length)}/${candidates.length}`);
+async function* listCatalog(filter) {
+  const params = new URLSearchParams({ limit: String(pageSize), filter, sort: "downloads", direction: "-1" });
+  for (const field of ["tags", "cardData", "siblings", "pipeline_tag", "library_name", "downloads", "likes", "lastModified"]) params.append("expand", field);
+  let url = `https://huggingface.co/api/models?${params.toString()}`;
+  while (url) {
+    const response = await fetch(url, { headers });
+    if (!response.ok) throw new Error(`${response.status} while listing ${filter}`);
+    const items = await response.json();
+    for (const item of items) yield item;
+    url = parseNextLink(response.headers.get("Link"));
+  }
 }
-console.log(JSON.stringify({ queries: queries.length, imported: candidates.length, maxPerQuery, maxCandidates }, null, 2));
+
+const seen = new Set();
+let imported = 0;
+let scanned = 0;
+let batch = [];
+
+for (const filter of catalogFilters) {
+  console.log(`Catalog pass: filter=${filter}`);
+  try {
+    for await (const model of listCatalog(filter)) {
+      scanned += 1;
+      const id = text(model.id);
+      if (!id || seen.has(id) || !looksLikeLoRA(model)) continue;
+      seen.add(id);
+      batch.push(statement(model));
+      imported += 1;
+      if (batch.length >= importBatchSize) {
+        runD1(batch.join("\n"));
+        batch = [];
+        console.log(`Indexed ${imported.toLocaleString()} unique LoRA candidates (${scanned.toLocaleString()} scanned).`);
+      }
+      if (maxCandidates && imported >= maxCandidates) break;
+    }
+  } catch (error) {
+    console.warn(`Catalog pass failed for ${filter}: ${error.message}`);
+  }
+  if (maxCandidates && imported >= maxCandidates) break;
+}
+
+runD1(batch.join("\n"));
+console.log(JSON.stringify({ filters: catalogFilters, scanned, imported, maxCandidates: maxCandidates || "unlimited" }, null, 2));
