@@ -323,7 +323,7 @@ function updateCommandResults() {
   $$("[data-command-id]").forEach((item) => item.addEventListener("click", () => { const selected = state.models.find((model) => model.id === item.dataset.commandId); $("#command-input").value = selected?.name || ""; closeDialog($("#command-dialog")); setQuery(selected?.name || ""); }));
 }
 
-async function loadScript(source) { return new Promise((resolve, reject) => { const script = document.createElement("script"); script.src = source; script.async = true; script.crossOrigin = "anonymous"; script.onload = resolve; script.onerror = reject; document.head.appendChild(script); }); }
+async function loadScript(source, attributes = {}) { return new Promise((resolve, reject) => { const script = document.createElement("script"); script.src = source; script.async = true; script.crossOrigin = "anonymous"; Object.entries(attributes).forEach(([name, value]) => script.setAttribute(name, value)); script.onload = resolve; script.onerror = reject; document.head.appendChild(script); }); }
 
 function renderAuth() {
   const trigger = $("#auth-trigger");
@@ -348,7 +348,7 @@ async function initClerk() {
     const domain = encodedDomain ? atob(encodedDomain).slice(0, -1) : "";
     if (!domain) return;
     await loadScript(`https://${domain}/npm/@clerk/ui@1/dist/ui.browser.js`);
-    await loadScript(`https://${domain}/npm/@clerk/clerk-js@6/dist/clerk.browser.js`);
+    await loadScript(`https://${domain}/npm/@clerk/clerk-js@6/dist/clerk.browser.js`, { "data-clerk-publishable-key": key });
     const globalClerk = window.Clerk;
     state.clerk = typeof globalClerk === "function" ? new globalClerk(key) : globalClerk;
     if (!state.clerk) return;
