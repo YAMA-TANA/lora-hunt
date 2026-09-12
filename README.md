@@ -29,6 +29,8 @@ npx wrangler pages dev public --d1=DB=lora-hunt-db --local
 
 Cloudflare Pages project: `lora-hunt`
 
+GitHub連携済みです。`main`へのpushでCloudflare Pagesが`public/`を自動デプロイし、その他のブランチとPull Requestはプレビューとして作成されます。SEO個別ページはリポジトリに生成済みHTMLを含める運用です。Hubデータを更新した場合は、`npm run sync:hf` → `npm run build:seo` → 生成ファイルをcommit/pushしてください。
+
 - D1 database: `lora-hunt-db`
 - `HF_TOKEN`: 登録済み（Pages production secret）
 - Clerk のキーは環境ごとに設定してください。公開キーは `wrangler.jsonc` の `CLERK_PUBLISHABLE_KEY` またはPages Variables、署名検証用の `CLERK_JWT_KEY` はPages Secretに入れます。
