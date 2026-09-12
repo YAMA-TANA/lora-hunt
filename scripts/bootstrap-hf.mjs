@@ -21,7 +21,11 @@ async function getJSON(url) {
 }
 
 function modelType(model) {
-  const value = `${text(model.pipeline_tag)} ${(model.tags || []).join(" ")} ${text(model.library_name)} ${text(model.id)}`.toLowerCase();
+  const pipeline = text(model.pipeline_tag).toLowerCase();
+  if (pipeline.includes("video")) return "Video";
+  if (pipeline.includes("audio")) return "Audio";
+  if (pipeline.includes("image")) return "Image";
+  const value = `${pipeline} ${(model.tags || []).join(" ")} ${text(model.library_name)} ${text(model.id)}`.toLowerCase();
   if (value.includes("video") || value.includes("wan") || value.includes("ltx")) return "Video";
   if (value.includes("audio") || value.includes("music")) return "Audio";
   if (value.includes("diffusers") || value.includes("image") || value.includes("flux")) return "Image";
@@ -77,7 +81,9 @@ function docsQuality(readme) {
 }
 
 function description(readme, id) {
-  const paragraphs = text(readme).split(/\n\s*\n/).map((part) => part.replace(/^#+\s*/, "").replace(/[`*_>#]/g, "").replace(/\s+/g, " ").trim()).filter((part) => part.length > 40 && !/^tags?$/i.test(part));
+  const cleanReadme = text(readme).replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, "");
+  const modelName = text(id.split("/").pop());
+  const paragraphs = cleanReadme.split(/\n\s*\n/).filter((part) => !/shields\.io|img\.shields|badge/i.test(part)).map((part) => part.replace(/^#+\s*/, "").replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/\[([^\]]+)\]\([^)]*\)/g, "$1").replace(/[`*_>#]/g, "").replace(/\s+/g, " ").trim()).filter((part) => part.length > 40 && part !== modelName && !/^tags?$/i.test(part));
   return (paragraphs[0] || `Hugging Face Hubで公開されている ${id} のLoRA/adapter。READMEと実使用レポートで内容を補完できます。`).slice(0, 360);
 }
 

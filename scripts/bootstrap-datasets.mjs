@@ -38,7 +38,7 @@ function docsQuality(readme) {
 }
 
 function description(readme, id) {
-  const cleanReadme = text(readme).replace(/^---[\s\S]*?---\s*/m, "");
+  const cleanReadme = text(readme).replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, "");
   const paragraphs = cleanReadme.split(/\n\s*\n/).filter((part) => !/shields\.io|img\.shields|badge/i.test(part)).map((part) => part.replace(/^#+\s*/, "").replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/\[([^\]]+)\]\([^)]*\)/g, "$1").replace(/[`*_>#]/g, "").replace(/\s+/g, " ").trim()).filter((part) => part.length > 40 && !/^tags?$/i.test(part));
   return (paragraphs[0] || `Hugging Face Hubで公開されている ${id} のデータセット。用途・ライセンス・更新日を確認してから利用できます。`).slice(0, 360);
 }

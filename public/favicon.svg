@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title>LoRA Hunt</title>
+  <rect width="64" height="64" rx="16" fill="#16233a"/>
+  <path d="M16 14v36h18M16 32h15" fill="none" stroke="#f5f7fa" stroke-linecap="round" stroke-width="6"/>
+  <path d="M42 14v36M42 14l10 18-10 18" fill="none" stroke="#a8d90f" stroke-linecap="round" stroke-linejoin="round" stroke-width="6"/>
+</svg>

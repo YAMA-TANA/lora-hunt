@@ -79,7 +79,7 @@ function renderModel(model) {
  return `<article class="model-card" data-model-id="${escapeHTML(model.id)}">
     <div class="model-main">
       <div class="card-topline"><span class="type-badge">${escapeHTML(model.type)}</span><span class="${fitClass}">${fitLabel}</span><span class="license-badge" title="${escapeHTML(model.license)}">${escapeHTML(licenseLabel)}</span>${contentWarning ? `<span class="content-warning" title="This Hub item may contain adult or explicit content">${contentWarning}</span>` : ""}</div>
-      <h3 class="model-title"><a href="${escapeHTML(model.hf_url)}" target="_blank" rel="noreferrer">${escapeHTML(model.name)}</a></h3>
+      <h3 class="model-title"><a href="/lora/${escapeHTML(model.slug)}/">${escapeHTML(model.name)}</a></h3>
       <p class="model-author">by ${escapeHTML(model.author)} · updated ${escapeHTML(model.updated_at)}</p>
       <p class="model-description">${escapeHTML(model.description)}</p>
       <div class="model-meta"><span><strong>Base</strong> ${escapeHTML(model.base_model)}</span><span><strong>Best for</strong> ${escapeHTML(model.best_for)}</span><span><strong>Rank</strong> ${model.lora_rank ? `r${escapeHTML(model.lora_rank)}` : "—"}</span><span><strong>Files</strong> ${formatNumber(model.file_size_mb)} MB · ${model.safetensors ? "safetensors" : "other"}</span></div>
@@ -106,7 +106,7 @@ function renderDataset(dataset) {
   const size = dataset.file_size_mb ? `${formatNumber(dataset.file_size_mb)} MB` : "size n/a";
   return `<article class="dataset-card">
     <div class="dataset-topline"><span class="type-badge">Dataset</span><span class="dataset-task">${escapeHTML(dataset.task)}</span></div>
-    <h3 class="dataset-title"><a href="${escapeHTML(dataset.hf_url)}" target="_blank" rel="noreferrer">${escapeHTML(dataset.name)}</a></h3>
+    <h3 class="dataset-title"><a href="/dataset/${escapeHTML(dataset.slug)}/">${escapeHTML(dataset.name)}</a></h3>
     <p class="model-author">by ${escapeHTML(dataset.author)} · updated ${escapeHTML(dataset.updated_at)}</p>
     <p class="dataset-description">${escapeHTML(dataset.description)}</p>
     <div class="dataset-tags">${tags.map((tag) => `<span>${escapeHTML(tag)}</span>`).join("")}</div>
