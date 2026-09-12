@@ -77,6 +77,23 @@
         </div>
       </section>
 
+      <section class="search-tray" aria-label="Search adapters">
+        <form class="quick-search" id="quick-search-form">
+          <label class="sr-only" for="quick-search-input">Search adapters</label>
+          <span class="search-icon" aria-hidden="true">⌕</span>
+          <input id="quick-search-input" type="search" placeholder="Search by model, base model, purpose…" autocomplete="off" />
+          <button class="primary-button" type="submit">Search index</button>
+        </form>
+        <div class="search-tray-foot">
+          <span class="tray-hint">Try a structured query</span>
+          <div class="query-chips" aria-label="Suggested searches">
+            <button class="query-chip" type="button" data-query="Japanese coding qwen">Japanese coding qwen</button>
+            <button class="query-chip" type="button" data-query="FLUX style">FLUX style</button>
+            <button class="query-chip" type="button" data-query="Wan motion">Wan motion</button>
+          </div>
+        </div>
+      </section>
+
       <section class="workspace" aria-label="LoRA explorer workspace">
         <aside class="filter-panel" aria-label="Filters">
           <div class="filter-heading">
@@ -160,6 +177,7 @@
             <div>
               <p class="panel-label">MATCHES</p>
               <h2 id="results-title"><span id="result-count">—</span> adapters</h2>
+              <p class="results-context" id="results-context">Search the index, then verify the conditions.</p>
             </div>
             <div class="toolbar-actions">
               <label class="sort-label" for="sort">Sort by</label>

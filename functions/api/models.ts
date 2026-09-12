@@ -23,11 +23,13 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
   const limit = Math.min(50, Math.max(1, Number(url.searchParams.get("limit") || 20)));
   const offset = Math.max(0, Number(url.searchParams.get("offset") || 0));
 
-  if (q) {
-    conditions.push("(name LIKE ? OR author LIKE ? OR base_model LIKE ? OR purpose LIKE ? OR description LIKE ?)");
-    const pattern = `%${q}%`;
-    values.push(pattern, pattern, pattern, pattern, pattern);
-  }
+ if (q) {
+    q.split(/\s+/).filter(Boolean).slice(0, 8).forEach((term) => {
+      conditions.push("(name LIKE ? OR author LIKE ? OR base_model LIKE ? OR purpose LIKE ? OR description LIKE ?)");
+      const pattern = "%" + term + "%";
+      values.push(pattern, pattern, pattern, pattern, pattern);
+    });
+ }
   if (base) { conditions.push("base_family = ?"); values.push(base); }
   if (type) { conditions.push("type = ?"); values.push(type); }
   if (license === "commercial") conditions.push("commercial_use = 1");

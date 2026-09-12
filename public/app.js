@@ -9,7 +9,7 @@ const seedModels = [
   { id: "demo/music-texture-v1", slug: "music-texture-v1", name: "Music Texture v1", author: "audio-notebook", hf_url: "https://huggingface.co/models?search=Music%20Texture%20LoRA", type: "Audio", base_family: "Other", base_model: "Stable Audio Open", purpose: "Style, Motion", description: "音の質感とループの雰囲気を変えるオーディオ向けアダプター。", best_for: "短いループの方向性を探す", license: "MIT", commercial_use: 1, lora_rank: 24, file_size_mb: 88, downloads: 2600, likes: 72, rating: 4.0, review_count: 5, docs_quality: 2, safetensors: 1, compatibility: [{ target: "Stable Audio Open", works: 7, doesnt_work: 2 }, { target: "Diffusers", works: 6, doesnt_work: 1 }], updated_at: "2026-08-26" }
 ];
 
-const state = { models: seedModels, query: "", clerk: null, clerkConfigured: false, activeCommandIndex: 0, route: window.location.pathname };
+const state = { models: seedModels, total: seedModels.length, query: "", clerk: null, clerkConfigured: false, activeCommandIndex: 0, route: window.location.pathname };
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
 const escapeHTML = (value) => String(value ?? "").replace(/[&<>'"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[character]);
@@ -40,10 +40,11 @@ function getFilters() {
 function clientFilter(models) {
   const filters = getFilters();
   const query = state.query.trim().toLowerCase();
+  const queryTerms = query.split(/\s+/).filter(Boolean);
   let result = models.filter((model) => {
     const purpose = String(model.purpose || "").toLowerCase();
     const haystack = [model.name, model.author, model.base_model, model.base_family, model.type, model.purpose, model.description].join(" ").toLowerCase();
-    return (!query || haystack.includes(query)) &&
+    return (!queryTerms.length || queryTerms.every((term) => haystack.includes(term))) &&
       (!filters.base || model.base_family === filters.base) &&
       (!filters.type || model.type === filters.type) &&
       (!filters.purpose.length || filters.purpose.every((tag) => purpose.includes(tag.toLowerCase()))) &&
@@ -67,21 +68,27 @@ function renderModel(model) {
   const compatibility = parseCompatibility(model);
   const positive = compatibility.reduce((sum, item) => sum + Number(item.works || 0), 0);
   const negative = compatibility.reduce((sum, item) => sum + Number(item.doesnt_work || 0), 0);
+  const reportTotal = positive + negative;
   const rating = model.rating == null ? "—" : Number(model.rating).toFixed(1);
-  const docs = Math.max(0, Math.min(5, Number(model.docs_quality || 0)));
-  return `<article class="model-card" data-model-id="${escapeHTML(model.id)}">
+ const scorePercent = model.rating == null ? 0 : Math.max(0, Math.min(100, Number(model.rating) * 20));
+ const docs = Math.max(0, Math.min(5, Number(model.docs_quality || 0)));
+ const licenseLabel = model.commercial_use ? "Commercial" : model.license;
+  const fitLabel = reportTotal ? `${Math.round((positive / reportTotal) * 100)}% works` : "No reports yet";
+  const fitClass = reportTotal ? "fit-badge" : "fit-badge is-neutral";
+ return `<article class="model-card" data-model-id="${escapeHTML(model.id)}">
     <div class="model-main">
-      <div class="card-topline"><span class="type-badge">${escapeHTML(model.type)}</span><span class="fit-badge">${positive} works reports</span><span class="license-badge">${escapeHTML(model.license)}</span></div>
+      <div class="card-topline"><span class="type-badge">${escapeHTML(model.type)}</span><span class="${fitClass}">${fitLabel}</span><span class="license-badge" title="${escapeHTML(model.license)}">${escapeHTML(licenseLabel)}</span></div>
       <h3 class="model-title"><a href="${escapeHTML(model.hf_url)}" target="_blank" rel="noreferrer">${escapeHTML(model.name)}</a></h3>
       <p class="model-author">by ${escapeHTML(model.author)} · updated ${escapeHTML(model.updated_at)}</p>
       <p class="model-description">${escapeHTML(model.description)}</p>
-      <div class="model-meta"><span><strong>Base</strong> ${escapeHTML(model.base_model)}</span><span><strong>Best for</strong> ${escapeHTML(model.best_for)}</span><span><strong>Files</strong> ${formatNumber(model.file_size_mb)} MB · ${model.safetensors ? "safetensors" : "other"}</span></div>
+      <div class="model-meta"><span><strong>Base</strong> ${escapeHTML(model.base_model)}</span><span><strong>Best for</strong> ${escapeHTML(model.best_for)}</span><span><strong>Rank</strong> ${model.lora_rank ? `r${escapeHTML(model.lora_rank)}` : "—"}</span><span><strong>Files</strong> ${formatNumber(model.file_size_mb)} MB · ${model.safetensors ? "safetensors" : "other"}</span></div>
       <div class="card-actions"><a class="outline-button" href="${escapeHTML(model.hf_url)}" target="_blank" rel="noreferrer">Open on HF ↗</a><button class="primary-button review-trigger" type="button" data-review="${escapeHTML(model.id)}">Write a review</button></div>
       <p class="data-line">${formatNumber(model.downloads)} downloads · ${formatNumber(model.likes)} likes · <a href="#review" class="review-trigger" data-review="${escapeHTML(model.id)}">${formatNumber(model.review_count)} reviews</a></p>
     </div>
     <aside class="evidence-column" aria-label="Evidence for ${escapeHTML(model.name)}">
-      <div class="evidence-score"><span class="score-number">${rating}</span><span class="score-copy"><strong>Overall</strong>${docs}/5 docs quality</span></div>
-      <div class="evidence-section"><h3>Works with</h3><div class="compatibility-list">${compatibility.slice(0, 4).map((item) => `<div class="compatibility-row"><span title="${escapeHTML(item.target)}">${escapeHTML(item.target)}</span><b>✓ ${Number(item.works || 0)}</b><b class="is-negative">× ${Number(item.doesnt_work || 0)}</b></div>`).join("")}</div>
+      <div class="evidence-score"><div class="score-block"><span class="score-number">${rating}</span><span class="score-denom">/ 5</span></div><span class="score-copy"><strong>Community signal</strong><span>${formatNumber(model.review_count)} reviews</span><span>Docs ${docs}/5</span></span></div>
+      <div class="score-meter" aria-label="Overall rating ${rating} out of 5"><span class="score-meter-fill" style="width:${scorePercent}%"></span></div>
+      <div class="evidence-section"><h3>Works with</h3><p class="evidence-note">${reportTotal ? `${reportTotal} reports across ${compatibility.length} targets` : "No community reports yet"}</p><div class="compatibility-list">${compatibility.slice(0, 4).map((item) => `<div class="compatibility-row"><span title="${escapeHTML(item.target)}">${escapeHTML(item.target)}</span><b>✓ ${Number(item.works || 0)}</b><b class="is-negative">× ${Number(item.doesnt_work || 0)}</b></div>`).join("")}</div>
         <div class="vote-row"><button class="vote-button" type="button" data-vote="works" data-model="${escapeHTML(model.id)}" data-target="${escapeHTML(model.base_model)}">Works</button><button class="vote-button" type="button" data-vote="doesnt_work" data-model="${escapeHTML(model.id)}" data-target="${escapeHTML(model.base_model)}">Doesn’t work</button></div>
       </div>
     </aside>
@@ -90,23 +97,26 @@ function renderModel(model) {
 
 function renderActiveFilters() {
   const filters = getFilters();
-  const labels = [];
-  if (state.query) labels.push(`Search: ${state.query}`);
-  if (filters.base) labels.push(`Base: ${filters.base}`);
-  if (filters.type) labels.push(`Type: ${filters.type}`);
-  filters.purpose.forEach((value) => labels.push(value));
-  if (filters.minRating) labels.push(`Rating ≥ ${filters.minRating}`);
-  if (filters.maxSize) labels.push(`Size ≤ ${filters.maxSize} MB`);
-  if (filters.license === "commercial") labels.push("Commercial-friendly");
-  if (filters.compatible) labels.push(`Works with ${filters.compatible}`);
-  if (filters.safetensors) labels.push("Safetensors");
-  if (filters.docs) labels.push(`Docs ≥ ${filters.docs}`);
-  $("#active-filters").innerHTML = labels.map((label) => `<span class="active-filter">${escapeHTML(label)}</span>`).join("");
+  const chips = [];
+  const addChip = (key, label, value = "") => chips.push(`<button class="active-filter" type="button" data-remove-filter="${escapeHTML(key)}" data-remove-value="${escapeHTML(value)}" aria-label="Remove ${escapeHTML(label)}">${escapeHTML(label)}</button>`);
+  if (state.query) addChip("query", `Search: ${state.query}`);
+  if (filters.base) addChip("base", `Base: ${filters.base}`);
+  if (filters.type) addChip("type", `Type: ${filters.type}`);
+  filters.purpose.forEach((value) => addChip("purpose", value, value));
+  if (filters.minRating) addChip("minRating", `Rating ≥ ${filters.minRating}`);
+  if (filters.maxSize) addChip("maxSize", `Size ≤ ${filters.maxSize} MB`);
+  if (filters.license === "commercial") addChip("license", "Commercial-friendly");
+  if (filters.compatible) addChip("compatible", `Works with ${filters.compatible}`);
+  if (filters.safetensors) addChip("safetensors", "Safetensors");
+  if (filters.docs) addChip("docs", `Docs ≥ ${filters.docs}`);
+  $("#active-filters").innerHTML = chips.join("");
 }
 
 function render() {
   const models = clientFilter(state.models);
   $("#result-count").textContent = formatNumber(models.length);
+  $("#quick-search-input").value = state.query;
+  $("#results-context").textContent = state.query ? `Showing matches for “${state.query}” · ${formatNumber(state.total)} indexed candidates` : `${formatNumber(state.total)} indexed candidates · verify with community reports`;
   $("#model-list").setAttribute("aria-busy", "false");
   $("#model-list").innerHTML = models.map(renderModel).join("");
   $("#empty-state").hidden = models.length !== 0;
@@ -135,6 +145,7 @@ async function refreshModels({ immediate = false } = {}) {
       if (!response.ok) throw new Error("model index unavailable");
       const payload = await response.json();
       state.models = Array.isArray(payload.models) ? payload.models : seedModels;
+      state.total = Number(payload.total || state.models.length);
       render();
     } catch {
       render();
@@ -148,6 +159,39 @@ function resetFilters() {
   $("#filter-form").reset();
   $("#sort").value = "fit";
   state.query = "";
+  syncUrl();
+  render();
+  refreshModels({ immediate: true });
+}
+
+function syncUrl() {
+  const params = new URLSearchParams();
+  if (state.query) params.set("q", state.query);
+  const filters = getFilters();
+  Object.entries(filters).forEach(([key, value]) => {
+    if (key === "purpose") value.forEach((item) => params.append("purpose", item));
+    else if (!["sort"].includes(key) && value) params.set(key, value);
+  });
+  const query = params.toString();
+  window.history.replaceState({}, "", `${window.location.pathname}${query ? `?${query}` : ""}`);
+}
+
+function setQuery(value, { refresh = true } = {}) {
+  state.query = String(value || "").trim();
+  syncUrl();
+  render();
+  if (refresh) refreshModels({ immediate: true });
+}
+
+function removeFilter(button) {
+  const key = button.dataset.removeFilter;
+  if (key === "query") state.query = "";
+  else if (key === "purpose") $$(`input[name="purpose"][value="${CSS.escape(button.dataset.removeValue)}"]`).forEach((input) => { input.checked = false; });
+  else if (key === "compatible") $("#compatible-only").checked = false;
+  else if (key === "safetensors") $("#safetensors-only").checked = false;
+  else if (key === "docs") $("#docs-only").checked = false;
+  else { const input = $(`#filter-form [name="${CSS.escape(key)}"]`); if (input) input.value = ""; }
+  syncUrl();
   render();
   refreshModels({ immediate: true });
 }
@@ -218,18 +262,23 @@ async function castVote(button) {
 function wireResultActions() {
   $$("[data-review]").forEach((element) => element.addEventListener("click", (event) => { event.preventDefault(); openReview(element.dataset.review); }));
   $$("[data-vote]").forEach((element) => element.addEventListener("click", () => castVote(element)));
+  $$("[data-remove-filter]").forEach((element) => element.addEventListener("click", () => removeFilter(element)));
 }
 
 function commandMatches(query) {
   const normalized = query.trim().toLowerCase();
-  return state.models.filter((model) => !normalized || [model.name, model.base_model, model.purpose, model.author].join(" ").toLowerCase().includes(normalized)).slice(0, 6);
+  const terms = normalized.split(/\s+/).filter(Boolean);
+  return state.models.filter((model) => {
+    const haystack = [model.name, model.base_model, model.purpose, model.author].join(" ").toLowerCase();
+    return !terms.length || terms.every((term) => haystack.includes(term));
+  }).slice(0, 6);
 }
 
 function updateCommandResults() {
   const query = $("#command-input")?.value || "";
   const matches = commandMatches(query);
   $("#command-results").innerHTML = `<p class="command-group">${query ? "Matches" : "Suggested"}</p>${matches.length ? matches.map((model, index) => `<button class="command-item ${index === state.activeCommandIndex ? "is-active" : ""}" type="button" data-command-id="${escapeHTML(model.id)}"><span class="type-badge">${escapeHTML(model.type)}</span><span>${escapeHTML(model.name)}</span><small>${escapeHTML(model.base_model)}</small></button>`).join("") : `<p class="dialog-lede">No indexed adapter matches that phrase.</p>`}`;
-  $$("[data-command-id]").forEach((item) => item.addEventListener("click", () => { const selected = state.models.find((model) => model.id === item.dataset.commandId); state.query = selected?.name || ""; $("#command-input").value = state.query; closeDialog($("#command-dialog")); render(); refreshModels({ immediate: true }); }));
+  $$("[data-command-id]").forEach((item) => item.addEventListener("click", () => { const selected = state.models.find((model) => model.id === item.dataset.commandId); $("#command-input").value = selected?.name || ""; closeDialog($("#command-dialog")); setQuery(selected?.name || ""); }));
 }
 
 async function loadScript(source) { return new Promise((resolve, reject) => { const script = document.createElement("script"); script.src = source; script.async = true; script.crossOrigin = "anonymous"; script.onload = resolve; script.onerror = reject; document.head.appendChild(script); }); }
@@ -271,11 +320,13 @@ async function initClerk() {
 
 function initRoute() {
   const path = state.route.toLowerCase();
+  const routeQuery = new URLSearchParams(window.location.search).get("q");
+  if (routeQuery) state.query = routeQuery;
   if (path.includes("qwen3")) { $("#base-family").value = "Qwen"; $("#compatible-only").checked = true; }
   if (path.includes("japanese")) { $("input[name=purpose][value=Japanese]").checked = true; }
   if (path.includes("video")) { $("#model-type").value = "Video"; }
   const baseMatch = path.match(/\/base\/([^/]+)/);
-  if (baseMatch) state.query = decodeURIComponent(baseMatch[1]).replaceAll("-", " ");
+  if (baseMatch && !routeQuery) state.query = decodeURIComponent(baseMatch[1]).replaceAll("-", " ");
 }
 
 function init() {
@@ -291,8 +342,10 @@ function init() {
     if (event.key === "ArrowUp") { event.preventDefault(); state.activeCommandIndex = Math.max(0, state.activeCommandIndex - 1); updateCommandResults(); }
     if (event.key === "Enter" && items[state.activeCommandIndex]) { event.preventDefault(); items[state.activeCommandIndex].click(); }
   });
-  $("#filter-form").addEventListener("change", () => { render(); refreshModels(); });
-  $("#sort").addEventListener("change", () => { render(); refreshModels(); });
+  $("#quick-search-form").addEventListener("submit", (event) => { event.preventDefault(); setQuery($("#quick-search-input").value); });
+  $$("[data-query]").forEach((button) => button.addEventListener("click", () => setQuery(button.dataset.query)));
+  $("#filter-form").addEventListener("change", () => { syncUrl(); render(); refreshModels(); });
+  $("#sort").addEventListener("change", () => { syncUrl(); render(); refreshModels(); });
   $("#reset-filters").addEventListener("click", resetFilters);
   $("#empty-reset").addEventListener("click", resetFilters);
   $("#review-form").addEventListener("submit", submitReview);
