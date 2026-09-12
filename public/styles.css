@@ -55,9 +55,9 @@ kbd { min-width: 21px; padding: 2px 5px; border: 1px solid var(--color-rule); bo
 .user-button:empty { display: none; }
 
 .app-shell { width: min(100% - 2 * clamp(1rem, 4vw, 2.75rem), 1440px); margin-inline: auto; }
- .workbench-intro { padding-block: clamp(2.5rem, 5vw, 4.5rem) clamp(2rem, 4vw, 3.5rem); display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr); gap: clamp(2rem, 8vw, 10rem); align-items: end; }
+.workbench-intro { padding-block: clamp(1.75rem, 3.5vw, 3rem) clamp(1.5rem, 3vw, 2.5rem); display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr); gap: clamp(2rem, 8vw, 10rem); align-items: end; }
 .mono-kicker, .panel-label, .card-kicker, .condition-label { margin: 0; color: var(--color-muted); font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: 0.1em; text-transform: uppercase; }
-.workbench-intro h1 { max-width: 9ch; margin: var(--space-sm) 0 0; font-family: var(--font-display); font-size: clamp(3.4rem, 8vw, 7.3rem); font-weight: 600; letter-spacing: -0.075em; line-height: 0.92; overflow-wrap: anywhere; }
+.workbench-intro h1 { max-width: 9ch; margin: var(--space-sm) 0 0; font-family: var(--font-display); font-size: clamp(3rem, 6vw, 5.75rem); font-weight: 600; letter-spacing: -0.075em; line-height: 0.92; overflow-wrap: anywhere; }
 .workbench-intro h1 span { color: var(--color-accent); }
 .intro-copy { max-width: 36ch; padding-bottom: var(--space-xs); }
 .intro-copy > p { margin: 0; color: var(--color-ink-2); font-size: var(--text-md); line-height: 1.45; }
