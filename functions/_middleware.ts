@@ -13,15 +13,20 @@ export const onRequest: PagesFunction = async (context) => {
   const path = requestUrl.pathname;
   const scripts: string[] = [];
   if (path === "/" || path === "/index.html") {
-    scripts.push("/search-refresh.js?v=20260913.4", "/card-refresh.js?v=20260913.4", "/review-refresh.js?v=20260913.4");
+    scripts.push("/search-refresh.js?v=20260913.5", "/card-refresh.js?v=20260913.5", "/review-refresh.js?v=20260913.5");
   }
-  if (path.startsWith("/lora/")) scripts.push("/detail-refresh.js?v=20260913.4");
-  scripts.push("/locale-refresh.js?v=20260913.4");
+  if (path.startsWith("/lora/")) scripts.push("/detail-refresh.js?v=20260913.5");
+  scripts.push("/locale-refresh.js?v=20260913.5");
 
   return new HTMLRewriter()
+    .on("html", {
+      element(element) {
+        element.setAttribute("lang", "en");
+      }
+    })
     .on("head", {
       element(element) {
-        element.append('<link rel="stylesheet" href="/ui-refresh.css?v=20260913.4">', { html: true });
+        element.append('<link rel="stylesheet" href="/ui-refresh.css?v=20260913.5">', { html: true });
       }
     })
     .on("body", {
