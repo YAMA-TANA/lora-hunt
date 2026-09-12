@@ -4,14 +4,26 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#f5f7fa" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta name="author" content="LoRA Hunt" />
     <meta name="description" content="Hugging Face LoRAを、用途・互換性・実使用レビューで探すための検索インデックス。" />
     <link rel="canonical" href="https://lora-hunt.pages.dev/" />
+    <link rel="manifest" href="/site.webmanifest" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/tokens.css" />
     <link rel="stylesheet" href="/styles.css" />
     <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="LoRA Hunt" />
+    <meta property="og:locale" content="ja_JP" />
+    <meta property="og:title" content="LoRA Hunt — find the adapter that fits" />
+    <meta property="og:description" content="用途・互換性・実使用条件でHugging Face LoRAを探して比較する。" />
+    <meta property="og:url" content="https://lora-hunt.pages.dev/" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="LoRA Hunt — find the adapter that fits" />
+    <meta name="twitter:description" content="用途・互換性・実使用条件でHugging Face LoRAを探して比較する。" />
     <title>LoRA Hunt — find the adapter that fits</title>
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-YZ8R7GTWQR"></script>
     <script>
@@ -26,7 +38,8 @@
         "@type": "WebSite",
         "name": "LoRA Hunt",
         "url": "https://lora-hunt.pages.dev/",
-        "description": "用途・互換性・レビューでHugging Face LoRAを探す検索インデックス。"
+        "description": "用途・互換性・レビューでHugging Face LoRAを探す検索インデックス。",
+        "potentialAction": {"@type":"SearchAction","target":"https://lora-hunt.pages.dev/?q={search_term_string}","query-input":"required name=search_term_string"}
       }
     </script>
   </head>
@@ -184,7 +197,7 @@
 
     <footer class="site-footer">
       <p>© 2026 LoRA Hunt · the index is public, the opinions are community-made.</p>
-      <div><a href="https://huggingface.co/models" target="_blank" rel="noreferrer">Hugging Face ↗</a><span>·</span><button class="text-button" id="setup-trigger" type="button">Auth setup</button></div>
+      <div><a href="/privacy">Privacy</a><span>·</span><a href="/terms">Terms</a><span>·</span><a href="https://huggingface.co/models" target="_blank" rel="noreferrer">Hugging Face ↗</a><span>·</span><button class="text-button" id="setup-trigger" type="button">Auth setup</button></div>
     </footer>
 
     <dialog class="command-dialog" id="command-dialog" aria-labelledby="command-title">

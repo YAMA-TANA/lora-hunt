@@ -1,0 +1,16 @@
+# LoRA Hunt
+
+> Hugging Face LoRA / PEFT adapter search and comparison index.
+
+LoRA Hunt organizes public Hugging Face model metadata with purpose, compatibility, documentation quality, community reviews, and real-world runtime conditions.
+
+## Key pages
+
+- [Adapter index](https://lora-hunt.pages.dev/): search and filter models.
+- [Best Qwen3 LoRAs](https://lora-hunt.pages.dev/best/qwen3-loras): Qwen3 preset.
+- [Best Japanese LoRAs](https://lora-hunt.pages.dev/best/japanese-loras): Japanese preset.
+- [Best video LoRAs](https://lora-hunt.pages.dev/best/video-loras): video preset.
+- [Qwen3-8B base models](https://lora-hunt.pages.dev/base/qwen3-8b): compatibility preset.
+- [Terms](https://lora-hunt.pages.dev/terms) and [Privacy](https://lora-hunt.pages.dev/privacy).
+
+Model files remain hosted by the linked source. LoRA Hunt is an index and community review layer, not a license or quality guarantee.

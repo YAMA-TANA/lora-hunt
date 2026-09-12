@@ -11,3 +11,11 @@
 
 /tokens.css
   Cache-Control: public, max-age=86400
+
+/feed.xml
+  Content-Type: application/rss+xml; charset=utf-8
+  Cache-Control: public, max-age=3600
+
+/site.webmanifest
+  Content-Type: application/manifest+json
+  Cache-Control: public, max-age=3600

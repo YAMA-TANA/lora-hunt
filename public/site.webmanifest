@@ -1,0 +1,10 @@
+{
+  "name": "LoRA Hunt",
+  "short_name": "LoRA Hunt",
+  "description": "用途・互換性・実使用条件でHugging Face LoRAを探して比較する検索インデックス。",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f7fa",
+  "theme_color": "#2f5bff",
+  "lang": "ja"
+}

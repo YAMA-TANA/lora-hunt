@@ -169,6 +169,30 @@ kbd { min-width: 21px; padding: 2px 5px; border: 1px solid var(--color-rule); bo
 .site-footer > div { display: flex; gap: var(--space-sm); white-space: nowrap; }
 .site-footer a:hover { color: var(--color-accent); }
 
+.legal-page { width: min(100% - 2 * clamp(1rem, 4vw, 2.75rem), 1180px); margin-inline: auto; padding-block: clamp(3rem, 8vw, 7rem); }
+.legal-layout { display: grid; grid-template-columns: minmax(220px, 0.6fr) minmax(0, 1.4fr); gap: clamp(2.5rem, 8vw, 9rem); align-items: start; }
+.legal-aside { position: sticky; top: var(--space-lg); }
+.legal-aside h1 { margin: var(--space-sm) 0 var(--space-xl); font-family: var(--font-display); font-size: clamp(3.1rem, 7vw, 6.2rem); font-weight: 600; letter-spacing: -0.075em; line-height: 0.9; }
+.legal-aside h1 span { color: var(--color-accent); }
+.legal-aside nav { display: grid; gap: var(--space-sm); border-top: 1px solid var(--color-rule-strong); padding-top: var(--space-md); }
+.legal-aside nav a { color: var(--color-muted); font-size: var(--text-sm); }
+.legal-aside nav a:hover, .legal-aside nav a[aria-current="page"] { color: var(--color-accent); }
+.legal-content { min-width: 0; padding-bottom: var(--space-2xl); }
+.legal-lede { max-width: 62ch; margin: 0 0 var(--space-sm); color: var(--color-ink); font-size: clamp(1.05rem, 1.7vw, 1.25rem); line-height: 1.85; }
+.legal-updated { margin: 0 0 clamp(2.5rem, 6vw, 5rem); color: var(--color-muted); font-family: var(--font-mono); font-size: var(--text-xs); }
+.legal-content h2 { margin: clamp(2rem, 5vw, 3.5rem) 0 var(--space-sm); padding-top: var(--space-sm); border-top: 1px solid var(--color-rule); font-family: var(--font-display); font-size: var(--text-xl); letter-spacing: -0.04em; }
+.legal-content p, .legal-content li { max-width: 68ch; color: var(--color-neutral); font-size: var(--text-sm); line-height: 1.95; }
+.legal-content p { margin-block: var(--space-sm); }
+.legal-content ul { margin: var(--space-sm) 0; padding-left: 1.25rem; }
+.legal-content li + li { margin-top: var(--space-xs); }
+.legal-content a { color: var(--color-accent); text-decoration: underline; text-decoration-color: color-mix(in oklch, var(--color-accent) 34%, transparent); text-underline-offset: 0.18em; }
+.legal-content a:hover { text-decoration-color: var(--color-accent); }
+.legal-callout { margin-top: clamp(2.5rem, 6vw, 5rem); padding: var(--space-md); display: grid; gap: var(--space-xs); border: 1px solid var(--color-rule-strong); border-left: 3px solid var(--color-accent); background: var(--color-paper-2); }
+.legal-callout strong { font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: 0.08em; text-transform: uppercase; }
+.legal-callout span { color: var(--color-neutral); font-size: var(--text-sm); line-height: 1.8; }
+.legal-backlink { text-decoration: none; }
+.legal-backlink:hover { text-decoration: none; }
+
 dialog { max-width: calc(100% - 2rem); padding: 0; border: 1px solid var(--color-rule-strong); border-radius: var(--radius-md); color: var(--color-ink); background: var(--color-surface); box-shadow: 0 20px 70px color-mix(in oklch, var(--color-ink) 22%, transparent); }
 dialog::backdrop { background: color-mix(in oklch, var(--color-ink) 30%, transparent); backdrop-filter: blur(4px); }
 .dialog-shell { width: min(640px, 100%); padding: var(--space-lg); }
@@ -253,6 +277,11 @@ code { padding: 2px 5px; border-radius: 4px; color: var(--color-ink); background
   .rating-grid label:first-child, .condition-grid .full-field { grid-column: 1 / -1; }
   .dialog-shell { padding: var(--space-md); }
   .dialog-hints { justify-content: flex-start; flex-wrap: wrap; }
+  .legal-page { padding-block: var(--space-2xl) var(--space-xl); }
+  .legal-layout { grid-template-columns: 1fr; gap: var(--space-xl); }
+  .legal-aside { position: static; }
+  .legal-aside h1 { margin-bottom: var(--space-lg); font-size: clamp(3.1rem, 17vw, 5.2rem); }
+  .legal-aside nav { display: flex; flex-wrap: wrap; gap: var(--space-md); }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 150ms !important; animation-iteration-count: 1 !important; transition-duration: 150ms !important; scroll-behavior: auto !important; }
