@@ -6,5 +6,25 @@ export const onRequest: PagesFunction = async (context) => {
     return Response.redirect(requestUrl.toString(), 301);
   }
 
-  return context.next();
+  const response = await context.next();
+  const contentType = response.headers.get("content-type") || "";
+  if (!contentType.includes("text/html")) return response;
+
+  const path = requestUrl.pathname;
+  const scripts: string[] = [];
+  if (path === "/" || path === "/index.html") scripts.push("/search-refresh.js?v=20260913.1", "/review-refresh.js?v=20260913.1");
+  if (path.startsWith("/lora/")) scripts.push("/detail-refresh.js?v=20260913.1");
+
+  return new HTMLRewriter()
+    .on("head", {
+      element(element) {
+        element.append('<link rel="stylesheet" href="/ui-refresh.css?v=20260913.1">', { html: true });
+      }
+    })
+    .on("body", {
+      element(element) {
+        if (scripts.length) element.append(scripts.map((src) => `<script src="${src}" defer></script>`).join(""), { html: true });
+      }
+    })
+    .transform(response);
 };
