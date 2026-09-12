@@ -8,7 +8,14 @@
   function words(){const ja=window.LoRAHuntLocale?.get?.()==='ja';return ja?{title:'LoRAファイル',repo:'親リポジトリ',base:'ベースモデル',trigger:'Trigger',weight:'推奨Weight',rank:'Rank / Alpha',size:'サイズ',signals:'親repoの人気',examples:'作例あり',enriched:'詳細解析済み',mirrors:'同一ファイル',open:'HFでファイルを見る',detail:'repo詳細',more:'さらに表示',empty:'ファイル単位では一致なし',loading:'LoRAファイルを検索中…'}:{title:'LoRA files',repo:'Repository',base:'Base model',trigger:'Trigger words',weight:'Recommended weight',rank:'Rank / Alpha',size:'File size',signals:'Repository signals',examples:'Example images',enriched:'Metadata enriched',mirrors:'mirrors',open:'Open file on HF',detail:'Repository details',more:'Load more files',empty:'No file-level matches yet',loading:'Searching individual LoRA files…'};}
 
   function host(){let h=$('#resource-results');if(h)return h;const models=$('#model-list');if(!models)return null;h=document.createElement('section');h.id='resource-results';h.className='lh-resources';models.parentNode.insertBefore(h,models);return h;}
-  function params(){const p=typeof apiParams==='function'?apiParams():new URLSearchParams();p.set('limit','24');p.set('offset',String(offset));const base=$('#base-model-query');if(base?.value)p.set('baseModel',base.value);return p;}
+  function params(){
+    const p=typeof apiParams==='function'?apiParams():new URLSearchParams();
+    p.set('limit','24');p.set('offset',String(offset));
+    const base=$('#base-model-query');if(base?.value)p.set('baseModel',base.value);
+    const purposes=[...document.querySelectorAll('input[name="purpose"]:checked')].map((input)=>input.value).filter(Boolean);
+    if(purposes.length){const q=[p.get('q')||'',...purposes].join(' ').trim();p.set('q',q);}
+    return p;
+  }
 
   function card(r){
     const t=words(),triggers=list(r.trigger_words).slice(0,6),targets=list(r.target_modules).slice(0,6),dupes=Number(r.duplicate_count||1);
