@@ -28,5 +28,6 @@ CREATE INDEX IF NOT EXISTS idx_resources_filename ON lora_resources(filename);
 CREATE INDEX IF NOT EXISTS idx_resources_base_model ON lora_resources(base_model);
 CREATE INDEX IF NOT EXISTS idx_resources_base_family ON lora_resources(base_family);
 CREATE INDEX IF NOT EXISTS idx_resources_rank ON lora_resources(lora_rank);
+CREATE INDEX IF NOT EXISTS idx_resources_sha256 ON lora_resources(sha256);
 CREATE INDEX IF NOT EXISTS idx_resources_updated ON lora_resources(updated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_resources_confidence ON lora_resources(metadata_confidence DESC);
