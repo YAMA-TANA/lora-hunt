@@ -2,6 +2,14 @@
   const $ = (s, r=document) => r.querySelector(s);
   const num = (v) => new Intl.NumberFormat('en-US', {notation:Number(v)>=100000?'compact':'standard', maximumFractionDigits:1}).format(Number(v||0));
 
+  function expandBaseFamilies(){
+    const select=$('#base-family');
+    if(!select) return;
+    ['Mistral','SDXL','Illustrious','Pony'].forEach((value)=>{
+      if(![...select.options].some((option)=>option.value===value||option.textContent===value)) select.add(new Option(value,value), Math.max(1,select.options.length-1));
+    });
+  }
+
   function addBaseModelFilter(){
     const form=$('#filter-form');
     if(!form||$('#base-model-query',form)) return;
@@ -37,12 +45,21 @@
 
   function install(){
     if(!$('#filter-form')||typeof state==='undefined') return;
+    expandBaseFamilies();
     addBaseModelFilter();
     addAdvancedFilters();
     const baseGet=getFilters;
     getFilters=function(){
       const base=baseGet(); const data=new FormData($('#filter-form'));
       return {...base,author:data.get('author')||'',minDownloads:data.get('minDownloads')||'',minLikes:data.get('minLikes')||'',maxRank:data.get('maxRank')||'',updatedDays:data.get('updatedDays')||''};
+    };
+    const baseRemove=removeFilter;
+    removeFilter=function(button){
+      if(button?.dataset?.removeFilter==='compatible'){
+        const input=$('#base-model-query'); if(input) input.value='';
+        syncUrl(); render(); refreshModels({immediate:true}); return;
+      }
+      return baseRemove(button);
     };
     clientFilter=(models)=>models;
     refreshModels=async function({immediate=false}={}){
