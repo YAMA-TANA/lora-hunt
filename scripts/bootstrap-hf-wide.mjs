@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 const headers = { Accept: "application/json", ...(process.env.HF_TOKEN ? { Authorization: `Bearer ${process.env.HF_TOKEN}` } : {}) };
-const catalogFilters = (process.env.HF_CATALOG_FILTERS || "lora,peft").split(",").map((value) => value.trim()).filter(Boolean);
+const catalogFilters = (process.env.HF_CATALOG_FILTERS || "lora").split(",").map((value) => value.trim()).filter(Boolean);
 const maxCandidates = Math.max(0, Number(process.env.HF_CATALOG_MAX || 0)); // 0 = no artificial cap
 const pageSize = 500;
 const importBatchSize = 100;
@@ -81,9 +81,12 @@ function filePaths(model) {
 function looksLikeLoRA(model) {
   const tags = (model.tags || []).join(" ");
   const files = filePaths(model);
+  const hasLoraTag = /(^|\s|,)lora(\s|,|$)/i.test(tags);
   const hasConfig = files.some((path) => /(^|\/)adapter_config\.json$/i.test(path));
-  const hasWeights = files.some((path) => /(?:lora|adapter|diffusion_pytorch_model|pytorch_lora_weights).*\.(?:safetensors|bin|pt)$/i.test(path)) || files.some((path) => /\.safetensors$/i.test(path));
-  return /(^|\s|,)lora(\s|,|$)/i.test(tags) || (hasConfig && hasWeights) || files.some((path) => /lora/i.test(path) && /\.safetensors$/i.test(path));
+  const hasSafeWeights = files.some((path) => /\.safetensors$/i.test(path));
+  const hasNamedWeights = files.some((path) => /(?:lora|adapter|diffusion_pytorch_model|pytorch_lora_weights).*\.(?:safetensors|bin|pt)$/i.test(path));
+  const hasLoraNamedSafeTensor = files.some((path) => /lora/i.test(path) && /\.safetensors$/i.test(path));
+  return (hasLoraTag && hasSafeWeights) || (hasConfig && hasNamedWeights) || hasLoraNamedSafeTensor;
 }
 
 function statement(model) {
@@ -102,7 +105,7 @@ function statement(model) {
   const description = `LoRA or adapter hosted on Hugging Face. LoRA Hunt normalizes its base model, purpose, files, popularity, and compatibility metadata for search.`;
   const bestFor = purpose === "General" ? "Check the model card for intended use" : `${purpose.split(", ")[0]} workflows`;
   const columns = [sqlText(id), sqlText(slug), sqlText(id.split("/").pop() || id), sqlText(id.split("/")[0] || "unknown"), sqlText(`https://huggingface.co/${id}`), sqlText(type), sqlText(familyFrom(base, id)), sqlText(base), sqlText(purpose), sqlText(description), sqlText(bestFor), sqlText(license), String(commercialUse(license)), "NULL", "NULL", String(downloads), String(likes), "NULL", "0", "1", String(safetensors), "0", sqlText("[]"), sqlText("[]"), sqlText(updated), String(quality)];
-  return `INSERT INTO models (id, slug, name, author, hf_url, type, base_family, base_model, purpose, description, best_for, license, commercial_use, lora_rank, file_size_mb, downloads, likes, rating, review_count, docs_quality, safetensors, content_warning, content_flags, compatibility_summary, updated_at, quality_score) VALUES (${columns.join(", ")}) ON CONFLICT(id) DO UPDATE SET downloads=excluded.downloads, likes=excluded.likes, updated_at=excluded.updated_at, base_family=CASE WHEN models.base_family='Other' THEN excluded.base_family ELSE models.base_family END, base_model=CASE WHEN models.base_model='Unknown base' THEN excluded.base_model ELSE models.base_model END, purpose=CASE WHEN models.purpose='General' THEN excluded.purpose ELSE models.purpose END, license=CASE WHEN models.license='Unknown' THEN excluded.license ELSE models.license END, safetensors=MAX(models.safetensors, excluded.safetensors), quality_score=MAX(models.quality_score, excluded.quality_score);`;
+  return `INSERT OR IGNORE INTO models (id, slug, name, author, hf_url, type, base_family, base_model, purpose, description, best_for, license, commercial_use, lora_rank, file_size_mb, downloads, likes, rating, review_count, docs_quality, safetensors, content_warning, content_flags, compatibility_summary, updated_at, quality_score) VALUES (${columns.join(", ")});`;
 }
 
 function runD1(sql) {
@@ -130,7 +133,7 @@ async function* listCatalog(filter) {
 }
 
 const seen = new Set();
-let imported = 0;
+let accepted = 0;
 let scanned = 0;
 let batch = [];
 
@@ -143,19 +146,19 @@ for (const filter of catalogFilters) {
       if (!id || seen.has(id) || !looksLikeLoRA(model)) continue;
       seen.add(id);
       batch.push(statement(model));
-      imported += 1;
+      accepted += 1;
       if (batch.length >= importBatchSize) {
         runD1(batch.join("\n"));
         batch = [];
-        console.log(`Indexed ${imported.toLocaleString()} unique LoRA candidates (${scanned.toLocaleString()} scanned).`);
+        console.log(`Processed ${accepted.toLocaleString()} unique LoRA candidates (${scanned.toLocaleString()} scanned). Existing rows are skipped without rewriting them.`);
       }
-      if (maxCandidates && imported >= maxCandidates) break;
+      if (maxCandidates && accepted >= maxCandidates) break;
     }
   } catch (error) {
-    console.warn(`Catalog pass failed for ${filter}: ${error.message}`);
+    console.warn(`Catalog pass stopped for ${filter}: ${error.message}`);
   }
-  if (maxCandidates && imported >= maxCandidates) break;
+  if (maxCandidates && accepted >= maxCandidates) break;
 }
 
 runD1(batch.join("\n"));
-console.log(JSON.stringify({ filters: catalogFilters, scanned, imported, maxCandidates: maxCandidates || "unlimited" }, null, 2));
+console.log(JSON.stringify({ filters: catalogFilters, scanned, accepted, maxCandidates: maxCandidates || "unlimited", mode: "insert-new-only" }, null, 2));
