@@ -7,14 +7,14 @@
 
   const copy = {
     en: {
-      filters:'FILTERS', matches:'MATCHES', sort:'Sort by', empty:'No LoRAs match those constraints.', emptyHelp:'Try widening one filter, or search by the exact base model.', reset:'Reset filters',
+      filters:'FILTERS', matches:'MATCHES', sort:'Sort by', empty:'No LoRAs match those constraints.', emptyHelp:'Try widening one filter, or search by the exact base model.', reset:'Reset filters', loadMore:'Load more',
       searchPlaceholder:'Try: Japanese roleplay model / FLUX.1-dev anime style', searchButton:'Search LoRAs', heading:'Narrow the catalog', searchPill:'Search LoRAs in plain language',
       intro:'Search by purpose, exact base model, popularity, compatibility, and real-world usage signals.', more:'More filters', author:'Author', minDl:'Minimum downloads', minLikes:'Minimum likes', maxRank:'Maximum LoRA rank', updated:'Updated', baseModel:'Base model',
       reviewTitle:'How did this LoRA perform?', reviewSubmit:'Publish review', review1:'1. Rate the result', review2:'2. Record your setup', openHF:'Open on Hugging Face ↗', writeReview:'Write a review', compatibility:'Compatibility reports', community:'Community rating', live:'Live Hub match',
       back:'← Back to LoRA search', similar:'Find similar LoRAs'
     },
     ja: {
-      filters:'フィルター', matches:'検索結果', sort:'並び順', empty:'条件に一致するLoRAがありません', emptyHelp:'条件を広げるか、ベースモデル名で検索してみてください。', reset:'条件をリセット',
+      filters:'フィルター', matches:'検索結果', sort:'並び順', empty:'条件に一致するLoRAがありません', emptyHelp:'条件を広げるか、ベースモデル名で検索してみてください。', reset:'条件をリセット', loadMore:'さらに読み込む',
       searchPlaceholder:'例：日本語のroleplayモデル / FLUX.1-devのアニメ画風', searchButton:'LoRAを検索', heading:'検索条件', searchPill:'自然な言葉でLoRAを検索',
       intro:'用途・正確なベースモデル・人気・互換性・実使用情報からLoRAを探せます。', more:'さらに絞り込む', author:'作者', minDl:'最低ダウンロード数', minLikes:'最低Likes', maxRank:'最大LoRA rank', updated:'更新日', baseModel:'ベースモデル',
       reviewTitle:'このLoRA、実際どうでした？', reviewSubmit:'レビューを投稿', review1:'1. 結果を評価', review2:'2. 使用条件', openHF:'Hugging Faceで見る ↗', writeReview:'レビューを書く', compatibility:'互換性レポート', community:'コミュニティ評価', live:'HFから追加発見',
@@ -29,7 +29,7 @@
     const picker=$('#lh-locale'); if(picker) picker.value=locale;
 
     setText('.filter-heading .panel-label',t.filters); setText('.results-toolbar .panel-label',t.matches); setText('.sort-label',t.sort);
-    setText('#empty-state .empty-title',t.empty); setText('#empty-state p:not(.empty-title)',t.emptyHelp); setText('#empty-reset',t.reset);
+    setText('#empty-state .empty-title',t.empty); setText('#empty-state p:not(.empty-title)',t.emptyHelp); setText('#empty-reset',t.reset); setText('#lh-load-more',t.loadMore);
     const input=$('#quick-search-input'); if(input) input.placeholder=t.searchPlaceholder;
     setText('#quick-search-form .primary-button',t.searchButton); setText('.filter-heading h2',t.heading); setText('.search-pill-label',t.searchPill); setText('.intro-copy > p',t.intro);
     setText('.lh-advanced summary',t.more);
