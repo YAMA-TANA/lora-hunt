@@ -14,6 +14,7 @@
       }
 
       const description = card.querySelector('.model-description');
+      if (model.source === 'hub-live' && description) description.textContent = 'Discovered live on Hugging Face. Open the source card to verify files, license, trigger words, and recommended settings.';
       if (description && !card.querySelector('.lh-purpose-row')) {
         const purposes = String(model.purpose || 'General').split(',').map((x) => x.trim()).filter(Boolean);
         description.insertAdjacentHTML('afterend', `<div class="lh-purpose-row">${purposes.map((p) => `<span class="lh-purpose">${esc(p)}</span>`).join('')}</div>`);
