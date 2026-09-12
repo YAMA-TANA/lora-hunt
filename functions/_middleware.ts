@@ -13,10 +13,10 @@ export const onRequest: PagesFunction = async (context) => {
   const path = requestUrl.pathname;
   const scripts: string[] = [];
   if (path === "/" || path === "/index.html") {
-    scripts.push("/search-refresh.js?v=20260913.5", "/card-refresh.js?v=20260913.5", "/review-refresh.js?v=20260913.5");
+    scripts.push("/search-refresh.js?v=20260913.6", "/resource-refresh.js?v=20260913.6", "/card-refresh.js?v=20260913.6", "/review-refresh.js?v=20260913.6");
   }
-  if (path.startsWith("/lora/")) scripts.push("/detail-refresh.js?v=20260913.5");
-  scripts.push("/locale-refresh.js?v=20260913.5");
+  if (path.startsWith("/lora/")) scripts.push("/detail-refresh.js?v=20260913.6");
+  scripts.push("/locale-refresh.js?v=20260913.6");
 
   return new HTMLRewriter()
     .on("html", {
@@ -26,7 +26,7 @@ export const onRequest: PagesFunction = async (context) => {
     })
     .on("head", {
       element(element) {
-        element.append('<link rel="stylesheet" href="/ui-refresh.css?v=20260913.5">', { html: true });
+        element.append('<link rel="stylesheet" href="/ui-refresh.css?v=20260913.6">', { html: true });
       }
     })
     .on("body", {
