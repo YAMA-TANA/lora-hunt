@@ -4,6 +4,8 @@
 
 LoRA Hunt organizes public Hugging Face model metadata with purpose, compatibility, documentation quality, community reviews, and real-world runtime conditions.
 
+NSFW and other content-warned Hub items remain searchable and are labeled in the adapter cards. Dataset metadata is indexed separately from LoRAs.
+
 ## Key pages
 
 - [Adapter index](https://lora-hunt.pages.dev/): search and filter models.
@@ -11,6 +13,7 @@ LoRA Hunt organizes public Hugging Face model metadata with purpose, compatibili
 - [Best Japanese LoRAs](https://lora-hunt.pages.dev/best/japanese-loras): Japanese preset.
 - [Best video LoRAs](https://lora-hunt.pages.dev/best/video-loras): video preset.
 - [Qwen3-8B base models](https://lora-hunt.pages.dev/base/qwen3-8b): compatibility preset.
+- [Datasets](https://lora-hunt.pages.dev/#datasets): training and evaluation datasets indexed separately from adapters.
 - [Terms](https://lora-hunt.pages.dev/terms) and [Privacy](https://lora-hunt.pages.dev/privacy).
 
 Model files remain hosted by the linked source. LoRA Hunt is an index and community review layer, not a license or quality guarantee.

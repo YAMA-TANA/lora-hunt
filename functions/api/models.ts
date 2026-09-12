@@ -46,7 +46,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
   const queryValues = [...values];
   const [countResult, modelResult, voteResult] = await env.DB.batch([
     env.DB.prepare(`SELECT COUNT(*) AS total FROM models ${where}`).bind(...queryValues),
-    env.DB.prepare(`SELECT id, slug, name, author, hf_url, type, base_family, base_model, purpose, description, best_for, license, commercial_use, lora_rank, file_size_mb, downloads, likes, rating, review_count, docs_quality, safetensors, compatibility_summary, updated_at, quality_score FROM models ${where} ORDER BY ${order} LIMIT ? OFFSET ?`).bind(...queryValues, limit, offset),
+    env.DB.prepare(`SELECT id, slug, name, author, hf_url, type, base_family, base_model, purpose, description, best_for, license, commercial_use, lora_rank, file_size_mb, downloads, likes, rating, review_count, docs_quality, safetensors, compatibility_summary, content_warning, content_flags, updated_at, quality_score FROM models ${where} ORDER BY ${order} LIMIT ? OFFSET ?`).bind(...queryValues, limit, offset),
     env.DB.prepare("SELECT model_id, target, status, COUNT(*) AS reports FROM compatibility_votes GROUP BY model_id, target, status ORDER BY reports DESC")
   ]);
   const votes = new Map<string, Array<{ target: string; works: number; doesnt_work: number }>>();

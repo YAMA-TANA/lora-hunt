@@ -10,9 +10,13 @@ Live: https://lora-hunt.pages.dev/
 - D1 によるモデル、レビュー、Works / Doesn't work 投票の保存
 - Clerk のセッションJWT検証を使ったレビュー・投票API
 - Hugging Face Hub API からの管理者同期API（`POST /api/sync`）
+- 用途別のHub候補を詳細化してD1へ初期投入する同期スクリプト（`npm run sync:hf`）
+- LoRAと分離したデータセット検索インデックス（`datasets` テーブル / `GET /api/datasets`）
 - Google Analytics（`G-YZ8R7GTWQR`）、robots.txt、sitemap.xml、IndexNow key file
 
 初期表示には、プロダクトの操作確認用に明示的な demo seed データを入れています。実在モデルの最新値としては扱わず、管理者同期でHubデータを追加してください。
+
+`npm run sync:hf` はHugging Faceの公開Hub APIからモデルカード、adapter_config、README、ファイル一覧を取得し、重み本体を保存せずにD1の検索インデックスを更新します。NSFWを含むHub公開候補も除外せず、content warningを付けて検索できます。データセットは別テーブルとして同期されます。`HF_TOKEN`を環境変数に設定すると、利用可能な公開メタデータの取得上限を広げられます。
 
 ## Local development
 

@@ -9,7 +9,7 @@ const seedModels = [
   { id: "demo/music-texture-v1", slug: "music-texture-v1", name: "Music Texture v1", author: "audio-notebook", hf_url: "https://huggingface.co/models?search=Music%20Texture%20LoRA", type: "Audio", base_family: "Other", base_model: "Stable Audio Open", purpose: "Style, Motion", description: "音の質感とループの雰囲気を変えるオーディオ向けアダプター。", best_for: "短いループの方向性を探す", license: "MIT", commercial_use: 1, lora_rank: 24, file_size_mb: 88, downloads: 2600, likes: 72, rating: 4.0, review_count: 5, docs_quality: 2, safetensors: 1, compatibility: [{ target: "Stable Audio Open", works: 7, doesnt_work: 2 }, { target: "Diffusers", works: 6, doesnt_work: 1 }], updated_at: "2026-08-26" }
 ];
 
-const state = { models: seedModels, total: seedModels.length, query: "", clerk: null, clerkConfigured: false, activeCommandIndex: 0, route: window.location.pathname };
+const state = { models: seedModels, total: seedModels.length, datasets: [], datasetTotal: 0, query: "", clerk: null, clerkConfigured: false, activeCommandIndex: 0, route: window.location.pathname };
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
 const escapeHTML = (value) => String(value ?? "").replace(/[&<>'"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[character]);
@@ -73,11 +73,12 @@ function renderModel(model) {
  const scorePercent = model.rating == null ? 0 : Math.max(0, Math.min(100, Number(model.rating) * 20));
  const docs = Math.max(0, Math.min(5, Number(model.docs_quality || 0)));
  const licenseLabel = model.commercial_use ? "Commercial" : model.license;
+ const contentWarning = Number(model.content_warning || 0) ? "Content warning" : "";
   const fitLabel = reportTotal ? `${Math.round((positive / reportTotal) * 100)}% works` : "No reports yet";
   const fitClass = reportTotal ? "fit-badge" : "fit-badge is-neutral";
  return `<article class="model-card" data-model-id="${escapeHTML(model.id)}">
     <div class="model-main">
-      <div class="card-topline"><span class="type-badge">${escapeHTML(model.type)}</span><span class="${fitClass}">${fitLabel}</span><span class="license-badge" title="${escapeHTML(model.license)}">${escapeHTML(licenseLabel)}</span></div>
+      <div class="card-topline"><span class="type-badge">${escapeHTML(model.type)}</span><span class="${fitClass}">${fitLabel}</span><span class="license-badge" title="${escapeHTML(model.license)}">${escapeHTML(licenseLabel)}</span>${contentWarning ? `<span class="content-warning" title="This Hub item may contain adult or explicit content">${contentWarning}</span>` : ""}</div>
       <h3 class="model-title"><a href="${escapeHTML(model.hf_url)}" target="_blank" rel="noreferrer">${escapeHTML(model.name)}</a></h3>
       <p class="model-author">by ${escapeHTML(model.author)} · updated ${escapeHTML(model.updated_at)}</p>
       <p class="model-description">${escapeHTML(model.description)}</p>
@@ -93,6 +94,33 @@ function renderModel(model) {
       </div>
     </aside>
   </article>`;
+}
+
+function parseDatasetTags(dataset) {
+  if (Array.isArray(dataset.tags)) return dataset.tags;
+  try { return JSON.parse(dataset.tags || "[]"); } catch { return String(dataset.tags || "").split(",").map((tag) => tag.trim()).filter(Boolean); }
+}
+
+function renderDataset(dataset) {
+  const tags = parseDatasetTags(dataset).slice(0, 4);
+  const size = dataset.file_size_mb ? `${formatNumber(dataset.file_size_mb)} MB` : "size n/a";
+  return `<article class="dataset-card">
+    <div class="dataset-topline"><span class="type-badge">Dataset</span><span class="dataset-task">${escapeHTML(dataset.task)}</span></div>
+    <h3 class="dataset-title"><a href="${escapeHTML(dataset.hf_url)}" target="_blank" rel="noreferrer">${escapeHTML(dataset.name)}</a></h3>
+    <p class="model-author">by ${escapeHTML(dataset.author)} · updated ${escapeHTML(dataset.updated_at)}</p>
+    <p class="dataset-description">${escapeHTML(dataset.description)}</p>
+    <div class="dataset-tags">${tags.map((tag) => `<span>${escapeHTML(tag)}</span>`).join("")}</div>
+    <div class="dataset-meta"><span><strong>Files</strong> ${formatNumber(dataset.files_count)}</span><span><strong>Size</strong> ${size}</span><span><strong>Docs</strong> ${Number(dataset.docs_quality || 0)}/5</span><span><strong>License</strong> ${escapeHTML(dataset.license || "Unknown")}</span></div>
+    <div class="dataset-footer"><span>${formatNumber(dataset.downloads)} downloads · ${formatNumber(dataset.likes)} likes${dataset.gated ? " · gated" : ""}</span><a class="outline-button" href="${escapeHTML(dataset.hf_url)}" target="_blank" rel="noreferrer">Open dataset ↗</a></div>
+  </article>`;
+}
+
+function renderDatasets() {
+  const list = $("#dataset-list");
+  if (!list) return;
+  list.setAttribute("aria-busy", "false");
+  list.innerHTML = state.datasets.length ? state.datasets.map(renderDataset).join("") : `<div class="dataset-empty"><p class="empty-title">No datasets indexed yet.</p><p>Run the Hub sync to add useful training and evaluation sets.</p></div>`;
+  $("#dataset-count").textContent = formatNumber(state.datasetTotal);
 }
 
 function renderActiveFilters() {
@@ -153,6 +181,20 @@ async function refreshModels({ immediate = false } = {}) {
   };
   if (immediate) await run();
   else refreshTimer = setTimeout(run, 180);
+}
+
+async function refreshDatasets() {
+  try {
+    const response = await fetch("/api/datasets?limit=6&sort=fit", { headers: { Accept: "application/json" } });
+    if (!response.ok) throw new Error("dataset index unavailable");
+    const payload = await response.json();
+    state.datasets = Array.isArray(payload.datasets) ? payload.datasets : [];
+    state.datasetTotal = Number(payload.total || state.datasets.length);
+  } catch {
+    state.datasets = [];
+    state.datasetTotal = 0;
+  }
+  renderDatasets();
 }
 
 function resetFilters() {
@@ -332,7 +374,9 @@ function initRoute() {
 function init() {
   initRoute();
   render();
+  renderDatasets();
   refreshModels({ immediate: true });
+  refreshDatasets();
   initClerk();
   $("#open-search").addEventListener("click", () => { openDialog($("#command-dialog")); $("#command-input").value = state.query; updateCommandResults(); setTimeout(() => $("#command-input").focus(), 0); });
   $("#command-input").addEventListener("input", () => { state.activeCommandIndex = 0; updateCommandResults(); });
