@@ -7,7 +7,7 @@ const headers = { Accept: "application/json", ...(process.env.HF_TOKEN ? { Autho
 const catalogFilters = (process.env.HF_CATALOG_FILTERS || "lora").split(",").map((value) => value.trim()).filter(Boolean);
 const maxCandidates = Math.max(0, Number(process.env.HF_CATALOG_MAX || 0)); // 0 = no artificial cap
 const pageSize = 500;
-const importBatchSize = 100;
+const importBatchSize = 75;
 const text = (value, fallback = "") => String(value ?? fallback).replace(/\u0000/g, "").trim();
 const sqlText = (value) => `'${text(value).replaceAll("'", "''")}'`;
 
@@ -74,8 +74,12 @@ function commercialUse(license) {
   return /apache|mit|bsd|cc-by|gpl|lgpl|mpl|public.?domain/.test(value) ? 1 : 0;
 }
 
+function siblings(model) {
+  return Array.isArray(model.siblings) ? model.siblings : [];
+}
+
 function filePaths(model) {
-  return (model.siblings || []).map((file) => text(file.rfilename || file.path)).filter(Boolean);
+  return siblings(model).map((file) => text(file.rfilename || file.path)).filter(Boolean);
 }
 
 function looksLikeLoRA(model) {
@@ -89,7 +93,20 @@ function looksLikeLoRA(model) {
   return (hasLoraTag && hasSafeWeights) || (hasConfig && hasNamedWeights) || hasLoraNamedSafeTensor;
 }
 
-function statement(model) {
+function isWeightFile(path) {
+  return /\.safetensors$/i.test(path) || /(?:lora|adapter|pytorch_lora_weights).*\.(?:bin|pt)$/i.test(path);
+}
+
+function sourceUrl(repoId, path) {
+  return `https://huggingface.co/${repoId}/blob/main/${path.split("/").map(encodeURIComponent).join("/")}`;
+}
+
+function sizeMb(file) {
+  const bytes = Number(file?.size || file?.lfs?.size || 0);
+  return bytes > 0 ? Math.round((bytes / 1024 / 1024) * 100) / 100 : null;
+}
+
+function modelStatement(model) {
   const id = text(model.id);
   const base = baseFrom(model);
   const type = typeFrom(model);
@@ -106,6 +123,29 @@ function statement(model) {
   const bestFor = purpose === "General" ? "Check the model card for intended use" : `${purpose.split(", ")[0]} workflows`;
   const columns = [sqlText(id), sqlText(slug), sqlText(id.split("/").pop() || id), sqlText(id.split("/")[0] || "unknown"), sqlText(`https://huggingface.co/${id}`), sqlText(type), sqlText(familyFrom(base, id)), sqlText(base), sqlText(purpose), sqlText(description), sqlText(bestFor), sqlText(license), String(commercialUse(license)), "NULL", "NULL", String(downloads), String(likes), "NULL", "0", "1", String(safetensors), "0", sqlText("[]"), sqlText("[]"), sqlText(updated), String(quality)];
   return `INSERT OR IGNORE INTO models (id, slug, name, author, hf_url, type, base_family, base_model, purpose, description, best_for, license, commercial_use, lora_rank, file_size_mb, downloads, likes, rating, review_count, docs_quality, safetensors, content_warning, content_flags, compatibility_summary, updated_at, quality_score) VALUES (${columns.join(", ")});`;
+}
+
+function resourceStatements(model) {
+  const repoId = text(model.id);
+  const base = baseFrom(model);
+  const family = familyFrom(base, repoId);
+  const updated = text(model.lastModified, new Date().toISOString());
+  const hasExamples = filePaths(model).some((path) => /\.(?:png|jpe?g|webp|gif)$/i.test(path)) ? 1 : 0;
+  return siblings(model).flatMap((file) => {
+    const path = text(file.rfilename || file.path);
+    if (!path || !isWeightFile(path)) return [];
+    const filename = path.split("/").pop() || path;
+    const format = path.toLowerCase().endsWith(".safetensors") ? "safetensors" : path.split(".").pop()?.toLowerCase() || "weights";
+    const size = sizeMb(file);
+    const id = `${repoId}:${path}`;
+    const confidence = /lora|adapter/i.test(path) ? 0.55 : 0.4;
+    const columns = [
+      sqlText(id), sqlText(repoId), sqlText(path), sqlText(filename), sqlText(sourceUrl(repoId, path)), sqlText(format),
+      size == null ? "NULL" : String(size), "NULL", sqlText(base), sqlText(family), sqlText("[]"), "NULL", "NULL", "NULL", "NULL",
+      sqlText("[]"), "NULL", String(hasExamples), String(confidence), "NULL", sqlText(updated)
+    ];
+    return [`INSERT OR IGNORE INTO lora_resources (id, model_id, path, filename, source_url, format, size_mb, sha256, base_model, base_family, trigger_words, recommended_weight_min, recommended_weight_max, lora_rank, alpha, target_modules, network_type, has_examples, metadata_confidence, enriched_at, updated_at) VALUES (${columns.join(", ")});`];
+  });
 }
 
 function runD1(sql) {
@@ -134,6 +174,7 @@ async function* listCatalog(filter) {
 
 const seen = new Set();
 let accepted = 0;
+let indexedResources = 0;
 let scanned = 0;
 let batch = [];
 
@@ -145,12 +186,14 @@ for (const filter of catalogFilters) {
       const id = text(model.id);
       if (!id || seen.has(id) || !looksLikeLoRA(model)) continue;
       seen.add(id);
-      batch.push(statement(model));
+      const resources = resourceStatements(model);
+      batch.push(modelStatement(model), ...resources);
       accepted += 1;
-      if (batch.length >= importBatchSize) {
+      indexedResources += resources.length;
+      if (accepted % importBatchSize === 0) {
         runD1(batch.join("\n"));
         batch = [];
-        console.log(`Processed ${accepted.toLocaleString()} unique LoRA candidates (${scanned.toLocaleString()} scanned). Existing rows are skipped without rewriting them.`);
+        console.log(`Processed ${accepted.toLocaleString()} LoRA repos and ${indexedResources.toLocaleString()} weight files (${scanned.toLocaleString()} scanned). Existing rows are skipped.`);
       }
       if (maxCandidates && accepted >= maxCandidates) break;
     }
@@ -161,4 +204,4 @@ for (const filter of catalogFilters) {
 }
 
 runD1(batch.join("\n"));
-console.log(JSON.stringify({ filters: catalogFilters, scanned, accepted, maxCandidates: maxCandidates || "unlimited", mode: "insert-new-only" }, null, 2));
+console.log(JSON.stringify({ filters: catalogFilters, scanned, accepted, indexedResources, maxCandidates: maxCandidates || "unlimited", mode: "insert-new-only" }, null, 2));
