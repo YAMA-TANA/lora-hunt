@@ -10,6 +10,7 @@
     "sync:hf": "node scripts/bootstrap-hf.mjs && node scripts/bootstrap-datasets.mjs",
     "sync:datasets": "node scripts/bootstrap-datasets.mjs",
     "build:seo": "node scripts/build-seo-pages.mjs",
+    "build:pages": "node scripts/build-pages.mjs",
     "deploy": "npx wrangler pages deploy public --project-name=lora-hunt"
   },
   "devDependencies": {
