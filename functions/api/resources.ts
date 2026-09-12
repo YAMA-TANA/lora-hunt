@@ -38,10 +38,11 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
       if (op[1] === "base") { conditions.push("(r.base_model LIKE ? OR r.base_family LIKE ?)"); values.push(pattern, pattern); continue; }
       if (op[1] === "file") { conditions.push("(r.filename LIKE ? OR r.path LIKE ?)"); values.push(pattern, pattern); continue; }
       if (op[1] === "repo") { conditions.push("(m.id LIKE ? OR m.name LIKE ?)"); values.push(pattern, pattern); continue; }
+      if (op[1] === "hash") { conditions.push("r.sha256 LIKE ?"); values.push(pattern); continue; }
     }
     const pattern = `%${term}%`;
-    conditions.push("(r.filename LIKE ? OR r.path LIKE ? OR r.trigger_words LIKE ? OR r.base_model LIKE ? OR r.target_modules LIKE ? OR m.id LIKE ? OR m.name LIKE ? OR m.author LIKE ? OR m.purpose LIKE ?)");
-    values.push(pattern, pattern, pattern, pattern, pattern, pattern, pattern, pattern, pattern);
+    conditions.push("(r.filename LIKE ? OR r.path LIKE ? OR r.trigger_words LIKE ? OR r.base_model LIKE ? OR r.target_modules LIKE ? OR r.sha256 LIKE ? OR m.id LIKE ? OR m.name LIKE ? OR m.author LIKE ? OR m.purpose LIKE ?)");
+    values.push(pattern, pattern, pattern, pattern, pattern, pattern, pattern, pattern, pattern, pattern);
   }
 
   const baseModel = (url.searchParams.get("baseModel") || url.searchParams.get("compatible") || "").trim();
@@ -76,7 +77,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
   const limit = Math.min(60, Math.max(1, Number(url.searchParams.get("limit") || 30)));
   const offset = Math.max(0, Number(url.searchParams.get("offset") || 0));
   const where = `WHERE ${conditions.join(" AND ")}`;
-  const fields = "r.id,r.model_id,r.path,r.filename,r.source_url,r.format,r.size_mb,r.sha256,r.base_model,r.base_family,r.trigger_words,r.recommended_weight_min,r.recommended_weight_max,r.lora_rank,r.alpha,r.target_modules,r.network_type,r.has_examples,r.metadata_confidence,r.enriched_at,r.updated_at,m.name repo_name,m.author,m.type,m.purpose,m.downloads,m.likes,m.license,m.hf_url repo_url,m.slug repo_slug";
+  const fields = "r.id,r.model_id,r.path,r.filename,r.source_url,r.format,r.size_mb,r.sha256,r.base_model,r.base_family,r.trigger_words,r.recommended_weight_min,r.recommended_weight_max,r.lora_rank,r.alpha,r.target_modules,r.network_type,r.has_examples,r.metadata_confidence,r.enriched_at,r.updated_at,m.name repo_name,m.author,m.type,m.purpose,m.downloads,m.likes,m.license,m.hf_url repo_url,m.slug repo_slug,CASE WHEN r.sha256 IS NULL THEN 1 ELSE (SELECT COUNT(*) FROM lora_resources x WHERE x.sha256=r.sha256) END duplicate_count";
   const [countResult, dataResult] = await env.DB.batch([
     env.DB.prepare(`SELECT COUNT(*) total FROM lora_resources r JOIN models m ON m.id=r.model_id ${where}`).bind(...values),
     env.DB.prepare(`SELECT ${fields} FROM lora_resources r JOIN models m ON m.id=r.model_id ${where} ORDER BY ${order} LIMIT ? OFFSET ?`).bind(...values, limit, offset)
