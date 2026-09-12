@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-const site = "https://lora-hunt.pages.dev";
+const site = "https://lora-hunt.info";
 const output = join(process.cwd(), "public");
 const cssVersion = "20260912.6";
 

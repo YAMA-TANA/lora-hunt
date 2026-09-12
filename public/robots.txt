@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://lora-hunt.pages.dev/sitemap.xml
+Sitemap: https://lora-hunt.info/sitemap.xml

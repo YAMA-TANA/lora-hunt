@@ -2,20 +2,20 @@
 <rss version="2.0">
   <channel>
     <title>LoRA Hunt</title>
-    <link>https://lora-hunt.pages.dev/</link>
+    <link>https://lora-hunt.info/</link>
     <description>用途・互換性・実使用条件でHugging Face LoRAを探して比較する検索インデックス。</description>
     <language>ja</language>
     <lastBuildDate>Sat, 12 Sep 2026 00:00:00 +0900</lastBuildDate>
     <item>
       <title>LoRA Hunt adapter index</title>
-      <link>https://lora-hunt.pages.dev/</link>
-      <guid isPermaLink="true">https://lora-hunt.pages.dev/</guid>
+      <link>https://lora-hunt.info/</link>
+      <guid isPermaLink="true">https://lora-hunt.info/</guid>
       <description>LLM、画像、動画、音声向けのLoRA / PEFT adapterを検索・比較できます。</description>
     </item>
     <item>
       <title>Best Qwen3 LoRAs</title>
-      <link>https://lora-hunt.pages.dev/best/qwen3-loras</link>
-      <guid isPermaLink="true">https://lora-hunt.pages.dev/best/qwen3-loras</guid>
+      <link>https://lora-hunt.info/best/qwen3-loras</link>
+      <guid isPermaLink="true">https://lora-hunt.info/best/qwen3-loras</guid>
       <description>Qwen3向けのadapterを用途・評価・互換性で探します。</description>
     </item>
   </channel>

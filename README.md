@@ -2,7 +2,7 @@
 
 Hugging Face の LoRA / PEFT adapter を、用途・互換性・実使用条件で探して比較するための小さな検索サイトです。
 
-Live: https://lora-hunt.pages.dev/
+Live: https://lora-hunt.info/
 
 ## Included
 
