@@ -336,6 +336,8 @@ function renderAuth() {
   }
 }
 
+async function loadScript(source, attributes = {}) { return new Promise((resolve, reject) => { const script = document.createElement("script"); script.src = source; script.async = true; script.crossOrigin = "anonymous"; Object.entries(attributes).forEach(([name, value]) => script.setAttribute(name, value)); script.onload = resolve; script.onerror = reject; document.head.appendChild(script); }); }
+
 async function initClerk() {
   try {
     const response = await fetch("/api/config", { headers: { Accept: "application/json" } });
@@ -345,6 +347,9 @@ async function initClerk() {
     const encodedDomain = key.split("_")[2];
     const domain = encodedDomain ? atob(encodedDomain).slice(0, -1) : "";
     if (!domain) return;
+    window.__clerk_publishable_key = key;
+    await loadScript(`https://${domain}/npm/@clerk/ui@1/dist/ui.browser.js`);
+    await loadScript(`https://${domain}/npm/@clerk/clerk-js@6/dist/clerk.browser.js`, { "data-clerk-publishable-key": key });
     const globalClerk = window.Clerk;
     if (!globalClerk) return;
     state.clerk = typeof globalClerk === "function" ? new globalClerk(key) : globalClerk;
