@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#f5f7fa" />
+    <meta name="description" content="Hugging Face LoRAを、用途・互換性・実使用レビューで探すための検索インデックス。" />
+    <link rel="canonical" href="https://lora-hunt.pages.dev/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/tokens.css" />
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
+    <title>LoRA Hunt — find the adapter that fits</title>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-YZ8R7GTWQR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-YZ8R7GTWQR');
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "LoRA Hunt",
+        "url": "https://lora-hunt.pages.dev/",
+        "description": "用途・互換性・レビューでHugging Face LoRAを探す検索インデックス。"
+      }
+    </script>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="header-inner">
+        <a class="wordmark" href="/" aria-label="LoRA Hunt home"><span class="wordmark-mark">LH</span><span>LoRA Hunt</span></a>
+        <button class="search-pill" id="open-search" type="button" aria-label="Search LoRA Hunt">
+          <span class="search-icon" aria-hidden="true">⌕</span>
+          <span class="search-pill-label">モデル・用途・ベースモデルを検索</span>
+          <span class="shortcut"><kbd>Ctrl</kbd><kbd>K</kbd></span>
+        </button>
+        <nav class="header-nav" aria-label="Primary navigation">
+          <a href="#explore">Explore</a>
+          <a href="#lists">Best lists</a>
+          <button class="text-button" id="auth-trigger" type="button">Sign in</button>
+          <div class="user-button" id="user-button" aria-live="polite"></div>
+        </nav>
+      </div>
+    </header>
+
+    <main class="app-shell" id="explore">
+      <section class="workbench-intro" aria-labelledby="page-title">
+        <div>
+          <p class="mono-kicker">THE ADAPTER INDEX / 2026.09</p>
+          <h1 id="page-title">Find the adapter<br /><span>that fits.</span></h1>
+        </div>
+        <div class="intro-copy">
+          <p>数字を並べるだけでなく、何に使えて、どの環境で動いたかまで一画面で比べる。</p>
+          <div class="intro-notes" aria-label="What LoRA Hunt indexes">
+            <span><i class="note-dot"></i>用途</span>
+            <span><i class="note-dot"></i>互換性</span>
+            <span><i class="note-dot"></i>実使用条件</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="workspace" aria-label="LoRA explorer workspace">
+        <aside class="filter-panel" aria-label="Filters">
+          <div class="filter-heading">
+            <div>
+              <span class="panel-label">FILTERS</span>
+              <h2>What are you fitting?</h2>
+            </div>
+            <button class="reset-button" id="reset-filters" type="button">Reset</button>
+          </div>
+          <form id="filter-form">
+            <label class="field-label" for="base-family">Base family</label>
+            <select class="field-control" id="base-family" name="base">
+              <option value="">All families</option>
+              <option>Qwen</option>
+              <option>Llama</option>
+              <option>Gemma</option>
+              <option>FLUX</option>
+              <option>Wan</option>
+              <option>LTX</option>
+              <option>Other</option>
+            </select>
+
+            <label class="field-label" for="model-type">Type</label>
+            <select class="field-control" id="model-type" name="type">
+              <option value="">All types</option>
+              <option>LLM</option>
+              <option>Image</option>
+              <option>Video</option>
+              <option>Audio</option>
+            </select>
+
+            <span class="field-label">Purpose</span>
+            <div class="check-grid" role="group" aria-label="Purpose">
+              <label class="check-chip"><input type="checkbox" name="purpose" value="Coding" /><span>Coding</span></label>
+              <label class="check-chip"><input type="checkbox" name="purpose" value="Japanese" /><span>Japanese</span></label>
+              <label class="check-chip"><input type="checkbox" name="purpose" value="Reasoning" /><span>Reasoning</span></label>
+              <label class="check-chip"><input type="checkbox" name="purpose" value="Roleplay" /><span>Roleplay</span></label>
+              <label class="check-chip"><input type="checkbox" name="purpose" value="Character" /><span>Character</span></label>
+              <label class="check-chip"><input type="checkbox" name="purpose" value="Style" /><span>Style</span></label>
+              <label class="check-chip"><input type="checkbox" name="purpose" value="Motion" /><span>Motion</span></label>
+            </div>
+
+            <div class="field-pair">
+              <div>
+                <label class="field-label" for="min-rating">Rating</label>
+                <select class="field-control" id="min-rating" name="minRating">
+                  <option value="">Any</option>
+                  <option value="4.5">4.5 and up</option>
+                  <option value="4">4.0 and up</option>
+                  <option value="3">3.0 and up</option>
+                </select>
+              </div>
+              <div>
+                <label class="field-label" for="max-size">Size</label>
+                <select class="field-control" id="max-size" name="maxSize">
+                  <option value="">Any</option>
+                  <option value="200">≤ 200 MB</option>
+                  <option value="1000">≤ 1 GB</option>
+                </select>
+              </div>
+            </div>
+
+            <label class="field-label" for="license">License</label>
+            <select class="field-control" id="license" name="license">
+              <option value="">Any license</option>
+              <option value="commercial">Commercial-friendly</option>
+              <option value="open">Open source</option>
+            </select>
+
+            <div class="switch-list">
+              <label class="switch-row"><input type="checkbox" id="compatible-only" name="compatible" value="Qwen3-8B" /><span class="switch-ui"></span><span>Compatible with Qwen3-8B</span></label>
+              <label class="switch-row"><input type="checkbox" id="safetensors-only" name="safetensors" value="1" /><span class="switch-ui"></span><span>Safetensors available</span></label>
+              <label class="switch-row"><input type="checkbox" id="docs-only" name="docs" value="4" /><span class="switch-ui"></span><span>Docs quality ≥ 4</span></label>
+            </div>
+          </form>
+          <p class="filter-footnote">Filters are normalized from Hub metadata, adapter configs, files, and community reports.</p>
+        </aside>
+
+        <section class="results-panel" aria-labelledby="results-title">
+          <div class="results-toolbar">
+            <div>
+              <p class="panel-label">MATCHES</p>
+              <h2 id="results-title"><span id="result-count">—</span> adapters</h2>
+            </div>
+            <div class="toolbar-actions">
+              <label class="sort-label" for="sort">Sort by</label>
+              <select class="sort-control" id="sort" name="sort">
+                <option value="fit">Best fit</option>
+                <option value="rating">Rating</option>
+                <option value="downloads">Downloads</option>
+                <option value="updated">Recently updated</option>
+              </select>
+            </div>
+          </div>
+          <div class="active-filters" id="active-filters" aria-live="polite"></div>
+          <div class="model-list" id="model-list" aria-live="polite" aria-busy="true"></div>
+          <div class="empty-state" id="empty-state" hidden>
+            <p class="empty-title">No adapters match those constraints.</p>
+            <p>Try widening one filter, or search by the base model name.</p>
+            <button class="outline-button" id="empty-reset" type="button">Reset filters</button>
+          </div>
+        </section>
+      </section>
+
+      <section class="lists-section" id="lists" aria-labelledby="lists-title">
+        <div class="section-head">
+          <div><p class="panel-label">STARTING POINTS</p><h2 id="lists-title">Searches people actually make.</h2></div>
+          <p>Curated entry points generated from the same index, so the list and the results speak the same language.</p>
+        </div>
+        <div class="list-links">
+          <a href="/best/qwen3-loras"><span>01</span><strong>Best Qwen3 LoRAs</strong><em>Japanese · Coding</em><b>↗</b></a>
+          <a href="/best/japanese-loras"><span>02</span><strong>Japanese LoRAs</strong><em>Language · Roleplay</em><b>↗</b></a>
+          <a href="/best/video-loras"><span>03</span><strong>Video LoRAs</strong><em>Wan · LTX · Motion</em><b>↗</b></a>
+          <a href="/base/qwen3-8b"><span>04</span><strong>LoRAs for Qwen3-8B</strong><em>Compatibility first</em><b>↗</b></a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>© 2026 LoRA Hunt · the index is public, the opinions are community-made.</p>
+      <div><a href="https://huggingface.co/models" target="_blank" rel="noreferrer">Hugging Face ↗</a><span>·</span><button class="text-button" id="setup-trigger" type="button">Auth setup</button></div>
+    </footer>
+
+    <dialog class="command-dialog" id="command-dialog" aria-labelledby="command-title">
+      <div class="dialog-shell">
+        <div class="dialog-topline"><span id="command-title">Search the index</span><button class="icon-button" type="button" data-close-dialog aria-label="Close search">×</button></div>
+        <div class="command-field"><span class="search-icon" aria-hidden="true">⌕</span><input id="command-input" type="search" placeholder="Try “Japanese coding qwen”" autocomplete="off" /><kbd>Esc</kbd></div>
+        <div class="command-results" id="command-results"></div>
+        <div class="dialog-hints"><span><kbd>↑</kbd><kbd>↓</kbd> navigate</span><span><kbd>↵</kbd> open</span><span><kbd>Esc</kbd> close</span></div>
+      </div>
+    </dialog>
+
+    <dialog class="review-dialog" id="review-dialog" aria-labelledby="review-title">
+      <div class="dialog-shell review-shell">
+        <div class="dialog-topline"><div><span class="panel-label">COMMUNITY REVIEW</span><h2 id="review-title">How did it hold up?</h2></div><button class="icon-button" type="button" data-close-dialog aria-label="Close review">×</button></div>
+        <p class="dialog-lede" id="review-model-name">Add the conditions you actually used. Future readers can judge the result in context.</p>
+        <form id="review-form">
+          <input type="hidden" id="review-model-id" name="modelId" />
+          <div class="rating-grid">
+            <label>Overall<select name="overall" required><option value="5">5 — clear win</option><option value="4">4 — good</option><option value="3">3 — mixed</option><option value="2">2 — weak</option><option value="1">1 — no</option></select></label>
+            <label>Output quality<select name="outputQuality" required><option value="5">5</option><option value="4">4</option><option value="3">3</option><option value="2">2</option><option value="1">1</option></select></label>
+            <label>Matches description<select name="matchesDescription" required><option value="5">5</option><option value="4">4</option><option value="3">3</option><option value="2">2</option><option value="1">1</option></select></label>
+            <label>Ease of use<select name="easeOfUse" required><option value="5">5</option><option value="4">4</option><option value="3">3</option><option value="2">2</option><option value="1">1</option></select></label>
+            <label>Documentation<select name="documentation" required><option value="5">5</option><option value="4">4</option><option value="3">3</option><option value="2">2</option><option value="1">1</option></select></label>
+          </div>
+          <div class="condition-grid">
+            <label>Base model<input name="baseModel" placeholder="Qwen3-8B Q4_K_M" maxlength="120" /></label>
+            <label>Runtime<input name="runtime" placeholder="llama.cpp" maxlength="80" /></label>
+            <label>Quantization<input name="quantization" placeholder="Q4_K_M" maxlength="80" /></label>
+            <label>LoRA strength<input name="loraStrength" type="number" min="0" max="2" step="0.05" placeholder="0.8" /></label>
+            <label>Hardware<input name="hardware" placeholder="RTX 3070 Ti" maxlength="120" /></label>
+            <label class="full-field">Note<textarea name="note" maxlength="600" placeholder="What should the next person know?"></textarea></label>
+          </div>
+          <div class="form-footer"><p class="form-status" id="review-status" role="status"></p><button class="primary-button" type="submit">Publish review</button></div>
+        </form>
+      </div>
+    </dialog>
+
+    <dialog class="setup-dialog" id="setup-dialog" aria-labelledby="setup-title">
+      <div class="dialog-shell setup-shell">
+        <div class="dialog-topline"><span class="panel-label">AUTH STATUS</span><button class="icon-button" type="button" data-close-dialog aria-label="Close">×</button></div>
+        <h2 id="setup-title">Clerk is ready to connect.</h2>
+        <p id="setup-copy">レビューと互換性投票はClerkでアカウントを確認してから保存します。公開キーをPagesの <code>CLERK_PUBLISHABLE_KEY</code> に設定するとサインインUIが有効になります。</p>
+        <div class="setup-note"><span class="status-dot"></span><span id="setup-state">This deploy is running in read-only demo mode until a Clerk key is configured.</span></div>
+        <button class="outline-button" type="button" data-close-dialog>Close</button>
+      </div>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="/app.js" defer></script>
+  </body>
+</html>

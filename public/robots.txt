@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://lora-hunt.pages.dev/sitemap.xml
