@@ -10,6 +10,8 @@
     "sync:hf": "node scripts/bootstrap-hf-wide.mjs && node scripts/bootstrap-hf.mjs && node scripts/bootstrap-datasets.mjs",
     "sync:hf:catalog": "node scripts/bootstrap-hf-wide.mjs",
     "sync:hf:wide": "node scripts/bootstrap-hf-wide.mjs",
+    "sync:resources": "node scripts/enrich-lora-resources.mjs",
+    "sync:hf:deep": "node scripts/bootstrap-hf-wide.mjs && node scripts/enrich-lora-resources.mjs && node scripts/bootstrap-hf.mjs && node scripts/bootstrap-datasets.mjs",
     "sync:datasets": "node scripts/bootstrap-datasets.mjs",
     "build:seo": "node scripts/build-seo-pages.mjs",
     "build:pages": "node scripts/build-pages.mjs",
