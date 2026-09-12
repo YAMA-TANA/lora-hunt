@@ -8,6 +8,7 @@
     "types": "npx wrangler types",
     "check": "npx wrangler check",
     "sync:hf": "node scripts/bootstrap-hf-wide.mjs && node scripts/bootstrap-hf.mjs && node scripts/bootstrap-datasets.mjs",
+    "sync:hf:catalog": "node scripts/bootstrap-hf-wide.mjs",
     "sync:hf:wide": "node scripts/bootstrap-hf-wide.mjs",
     "sync:datasets": "node scripts/bootstrap-datasets.mjs",
     "build:seo": "node scripts/build-seo-pages.mjs",
