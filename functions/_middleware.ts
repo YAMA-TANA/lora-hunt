@@ -13,19 +13,20 @@ export const onRequest: PagesFunction = async (context) => {
   const path = requestUrl.pathname;
   const scripts: string[] = [];
   if (path === "/" || path === "/index.html") {
-    scripts.push("/search-refresh.js?v=20260913.3", "/locale-refresh.js?v=20260913.3", "/card-refresh.js?v=20260913.3", "/review-refresh.js?v=20260913.3");
+    scripts.push("/search-refresh.js?v=20260913.4", "/card-refresh.js?v=20260913.4", "/review-refresh.js?v=20260913.4");
   }
-  if (path.startsWith("/lora/")) scripts.push("/detail-refresh.js?v=20260913.3");
+  if (path.startsWith("/lora/")) scripts.push("/detail-refresh.js?v=20260913.4");
+  scripts.push("/locale-refresh.js?v=20260913.4");
 
   return new HTMLRewriter()
     .on("head", {
       element(element) {
-        element.append('<link rel="stylesheet" href="/ui-refresh.css?v=20260913.3">', { html: true });
+        element.append('<link rel="stylesheet" href="/ui-refresh.css?v=20260913.4">', { html: true });
       }
     })
     .on("body", {
       element(element) {
-        if (scripts.length) element.append(scripts.map((src) => `<script src="${src}" defer></script>`).join(""), { html: true });
+        element.append(scripts.map((src) => `<script src="${src}" defer></script>`).join(""), { html: true });
       }
     })
     .transform(response);
