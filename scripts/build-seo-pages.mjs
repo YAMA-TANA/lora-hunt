@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const site = "https://lora-hunt.info";
@@ -148,6 +148,10 @@ function datasetDirectoryPage(datasets) {
 
 const models = queryD1("SELECT id, slug, name, author, hf_url, type, base_family, base_model, purpose, description, best_for, license, commercial_use, lora_rank, file_size_mb, downloads, likes, rating, review_count, docs_quality, safetensors, compatibility_summary, content_warning, content_flags, updated_at FROM models ORDER BY downloads DESC");
 const datasets = queryD1("SELECT id, slug, name, author, hf_url, task, description, tags, license, downloads, likes, file_size_mb, files_count, docs_quality, gated, updated_at FROM datasets ORDER BY downloads DESC");
+
+// These directories are generated from the live D1 index. Clean them first so a
+// removed or unpublished Hub item cannot remain reachable as a stale static page.
+for (const directory of ["lora", "dataset", "datasets", "best", "base"]) rmSync(join(output, directory), { recursive: true, force: true });
 
 for (const model of models) writePage(`lora/${safeSlug(model.slug)}`, modelPage(model));
 for (const dataset of datasets) writePage(`dataset/${safeSlug(dataset.slug)}`, datasetPage(dataset));

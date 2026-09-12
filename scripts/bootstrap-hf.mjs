@@ -3,12 +3,16 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-const queries = ["qwen lora", "llama lora", "gemma lora", "flux lora", "wan lora", "ltx lora", "japanese lora", "coding lora"];
+const queries = [
+  "qwen lora", "llama lora", "gemma lora", "flux lora", "wan lora", "ltx lora",
+  "japanese lora", "coding lora", "reasoning lora", "roleplay lora", "image lora",
+  "video lora", "audio lora", "nsfw lora", "uncensored lora", "lora"
+];
 const apiHeaders = { Accept: "application/json", ...(process.env.HF_TOKEN ? { Authorization: `Bearer ${process.env.HF_TOKEN}` } : {}) };
 const contentPattern = /nsfw|porn|sex|uncensored|explicit|nudity|18\+|adult/i;
 const adapterPattern = /lora|adapter|peft/i;
-const concurrency = 4;
-const maxPerQuery = 5;
+const concurrency = 8;
+const maxPerQuery = 12;
 
 const text = (value, fallback = "") => String(value ?? fallback).replace(/\u0000/g, "").trim();
 const sqlText = (value) => `'${text(value).replaceAll("'", "''")}'`;
@@ -90,8 +94,15 @@ function description(readme, id) {
 async function collectCandidates() {
   const seen = new Set();
   const candidates = [];
-  for (const query of queries) {
-    const list = await getJSON(`https://huggingface.co/api/models?search=${encodeURIComponent(query)}&limit=30&sort=downloads&direction=-1&full=true`);
+  const results = await Promise.all(queries.map(async (query) => {
+    try {
+      return { query, list: await getJSON(`https://huggingface.co/api/models?search=${encodeURIComponent(query)}&limit=100&sort=downloads&direction=-1&full=true`) };
+    } catch (error) {
+      console.warn(`Search failed for ${query}: ${error.message}`);
+      return { query, list: [] };
+    }
+  }));
+  for (const { query, list } of results) {
     let count = 0;
     for (const model of list) {
       const id = text(model.id);
@@ -208,8 +219,8 @@ for (let index = 0; index < candidates.length; index += concurrency) {
   console.log(`Enriched ${Math.min(index + concurrency, candidates.length)}/${candidates.length}`);
 }
 
-for (let index = 0; index < enriched.length; index += 8) {
-  runD1(enriched.slice(index, index + 8).map(statement).join("\n"));
+for (let index = 0; index < enriched.length; index += 20) {
+  runD1(enriched.slice(index, index + 20).map(statement).join("\n"));
 }
 
 console.log(JSON.stringify({ candidates: candidates.length, imported: enriched.length, ids: enriched.map((model) => model.id) }, null, 2));

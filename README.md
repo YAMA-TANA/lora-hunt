@@ -14,7 +14,7 @@ Live: https://lora-hunt.info/
 - LoRAと分離したデータセット検索インデックス（`datasets` テーブル / `GET /api/datasets`）
 - Google Analytics（`G-YZ8R7GTWQR`）、robots.txt、sitemap.xml、IndexNow key file
 
-初期表示には、プロダクトの操作確認用に明示的な demo seed データを入れています。実在モデルの最新値としては扱わず、管理者同期でHubデータを追加してください。
+本番表示はHugging Face Hubから同期した公開メタデータだけで構成しています。demo seedや架空の評価値は使わず、同期前は空状態になります。評価・レビュー・互換性レポートはコミュニティの実投稿がある場合だけ表示します。
 
 `npm run sync:hf` はHugging Faceの公開Hub APIからモデルカード、adapter_config、README、ファイル一覧を取得し、重み本体を保存せずにD1の検索インデックスを更新します。NSFWを含むHub公開候補も除外せず、content warningを付けて検索できます。データセットは別テーブルとして同期されます。`HF_TOKEN`を環境変数に設定すると、利用可能な公開メタデータの取得上限を広げられます。
 
