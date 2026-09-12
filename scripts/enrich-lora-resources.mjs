@@ -29,6 +29,30 @@ function runD1(sql) {
   } finally { rmSync(dir, { recursive: true, force: true }); }
 }
 
+function parseNextLink(header) {
+  if (!header) return null;
+  for (const part of header.split(",")) {
+    const match = part.match(/<([^>]+)>;\s*rel="?next"?/i);
+    if (match) return match[1];
+  }
+  return null;
+}
+
+function familyFrom(base) {
+  const value = text(base).toLowerCase();
+  if (value.includes("qwen")) return "Qwen";
+  if (value.includes("llama")) return "Llama";
+  if (value.includes("gemma")) return "Gemma";
+  if (value.includes("mistral")) return "Mistral";
+  if (value.includes("flux")) return "FLUX";
+  if (value.includes("wan")) return "Wan";
+  if (value.includes("ltx")) return "LTX";
+  if (value.includes("stable-diffusion-xl") || /\bsdxl\b/.test(value)) return "SDXL";
+  if (value.includes("illustrious")) return "Illustrious";
+  if (value.includes("pony")) return "Pony";
+  return "Other";
+}
+
 const rawUrl = (repo, path) => `https://huggingface.co/${repo}/raw/main/${path.split("/").map(encodeURIComponent).join("/")}`;
 const resolveUrl = (repo, path) => `https://huggingface.co/${repo}/resolve/main/${path.split("/").map(encodeURIComponent).join("/")}`;
 
@@ -44,38 +68,50 @@ async function getJSON(url) {
   return response.json();
 }
 
-function extractTriggerWords(readme) {
+async function getTree(repo) {
+  const items = [];
+  let url = `https://huggingface.co/api/models/${repo}/tree/main?recursive=true&expand=true&limit=1000`;
+  while (url) {
+    const response = await fetch(url, { headers: { Accept: "application/json", ...headers } });
+    if (!response.ok) throw new Error(`${response.status} while reading tree`);
+    const page = await response.json();
+    if (Array.isArray(page)) items.push(...page);
+    url = parseNextLink(response.headers.get("Link"));
+  }
+  return items;
+}
+
+function extractTriggerWords(source) {
   const found = new Set();
   const patterns = [
     /(?:trigger(?:\s+words?)?|trained\s+words?)\s*[:：]\s*([^\n]{1,240})/gi,
     /(?:use|prompt)\s+(?:the\s+)?(?:trigger|token)\s*[`"']([^`"']{1,80})[`"']/gi
   ];
   for (const pattern of patterns) {
-    for (const match of readme.matchAll(pattern)) {
+    for (const match of source.matchAll(pattern)) {
       String(match[1] || "").replace(/[`*_#]/g, "").split(/[,|/;]/).map((x) => x.trim()).filter((x) => x.length >= 2 && x.length <= 80).forEach((x) => found.add(x));
     }
   }
   return [...found].slice(0, 20);
 }
 
-function extractWeight(readme) {
-  const range = readme.match(/(?:recommended\s+)?(?:weight|strength|scale)\s*(?:range)?\s*[:：]?\s*([0-2](?:\.\d+)?)\s*(?:-|–|—|~|to)\s*([0-2](?:\.\d+)?)/i);
+function extractWeight(source) {
+  const range = source.match(/(?:recommended\s+)?(?:weight|strength|scale)\s*(?:range)?\s*[:：]?\s*([0-2](?:\.\d+)?)\s*(?:-|–|—|~|to)\s*([0-2](?:\.\d+)?)/i);
   if (range) return [Number(range[1]), Number(range[2])].sort((a, b) => a - b);
-  const single = readme.match(/(?:recommended\s+)?(?:weight|strength|scale)\s*[:：]\s*([0-2](?:\.\d+)?)/i);
+  const single = source.match(/(?:recommended\s+)?(?:weight|strength|scale)\s*[:：]\s*([0-2](?:\.\d+)?)/i);
   return single ? [Number(single[1]), Number(single[1])] : [null, null];
 }
 
-function nearestConfig(resourcePath, configs) {
+function nearestPath(resourcePath, candidates) {
   const dir = posix.dirname(resourcePath);
-  const scored = configs.map((path) => {
-    const configDir = posix.dirname(path);
-    let score = 0;
-    if (configDir === dir) score = 1000;
-    else if (dir.startsWith(`${configDir}/`)) score = 500 + configDir.length;
-    else if (configDir === ".") score = 10;
+  return candidates.map((path) => {
+    const candidateDir = posix.dirname(path);
+    let score = candidateDir === dir ? 1000 : candidateDir === "." ? 10 : dir.startsWith(`${candidateDir}/`) ? 500 + candidateDir.length : 0;
     return { path, score };
-  }).sort((a, b) => b.score - a.score);
-  return scored[0]?.score > 0 ? scored[0].path : null;
+  }).sort((a, b) => b.score - a.score)[0]?.score > 0 ? candidates.map((path) => {
+    const candidateDir = posix.dirname(path);
+    return { path, score: candidateDir === dir ? 1000 : candidateDir === "." ? 10 : dir.startsWith(`${candidateDir}/`) ? 500 + candidateDir.length : 0 };
+  }).sort((a, b) => b.score - a.score)[0].path : null;
 }
 
 function configMetadata(config) {
@@ -90,6 +126,14 @@ function configMetadata(config) {
     networkType: text(config.peft_type || config.network_type || config.task_type || "") || null,
     baseModel: text(config.base_model_name_or_path || "") || null
   };
+}
+
+function sidecarMetadata(value) {
+  if (!value || typeof value !== "object") return {};
+  const words = value.trainedWords || value.trigger_words || value.triggerWords || value.activation_text || value.activationText || [];
+  const triggerWords = (Array.isArray(words) ? words : [words]).map(String).map((x) => x.trim()).filter(Boolean).slice(0, 20);
+  const weight = Number(value.preferredWeight ?? value.weight ?? value.strength ?? NaN);
+  return { triggerWords, weight: Number.isFinite(weight) ? weight : null };
 }
 
 function inferTargetsFromTensorKeys(keys) {
@@ -142,35 +186,51 @@ function treeSize(file) {
 
 async function enrichRepo(row) {
   const repo = text(row.id);
-  const tree = await getJSON(`https://huggingface.co/api/models/${repo}/tree/main?recursive=true&expand=true`);
-  if (!Array.isArray(tree)) return [];
+  const tree = await getTree(repo);
   const files = tree.filter((item) => item.type === "file");
   const paths = files.map((item) => text(item.path)).filter(Boolean);
   const resources = paths.filter((path) => /\.safetensors$/i.test(path) || /(?:lora|adapter|pytorch_lora_weights).*\.(?:bin|pt)$/i.test(path));
   if (!resources.length) return [];
-  const readmePath = paths.find((path) => /^README\.md$/i.test(path));
-  const readme = readmePath ? await getText(rawUrl(repo, readmePath)) : "";
-  const triggers = extractTriggerWords(readme);
-  const [weightMin, weightMax] = extractWeight(readme);
+  const readmes = paths.filter((path) => /(^|\/)README\.md$/i.test(path));
   const configs = paths.filter((path) => /(^|\/)adapter_config\.json$/i.test(path));
-  const configCache = new Map();
+  const sidecars = paths.filter((path) => /(?:\.civitai\.info|\.metadata)?\.json$/i.test(path));
+  const textCache = new Map();
+  const jsonCache = new Map();
   const hasExamples = paths.some((path) => /\.(?:png|jpe?g|webp|gif)$/i.test(path)) ? 1 : 0;
   const updates = [];
 
+  const cachedText = async (path) => {
+    if (!path) return "";
+    if (!textCache.has(path)) textCache.set(path, await getText(rawUrl(repo, path)));
+    return textCache.get(path);
+  };
+  const cachedJSON = async (path) => {
+    if (!path) return null;
+    if (!jsonCache.has(path)) jsonCache.set(path, await getJSON(rawUrl(repo, path)));
+    return jsonCache.get(path);
+  };
+
   for (const resourcePath of resources) {
     const treeFile = files.find((item) => text(item.path) === resourcePath);
-    const configPath = nearestConfig(resourcePath, configs);
-    let fromConfig = {};
-    if (configPath) {
-      if (!configCache.has(configPath)) configCache.set(configPath, await getJSON(rawUrl(repo, configPath)));
-      fromConfig = configMetadata(configCache.get(configPath));
-    }
+    const configPath = nearestPath(resourcePath, configs);
+    const readmePath = nearestPath(resourcePath, readmes) || readmes.find((path) => /^README\.md$/i.test(path));
+    const stem = resourcePath.replace(/\.[^.]+$/, "");
+    const sidecarPath = sidecars.find((path) => path.replace(/(?:\.civitai\.info|\.metadata)?\.json$/i, "") === stem) || nearestPath(resourcePath, sidecars);
+    const readme = await cachedText(readmePath);
+    const fromConfig = configMetadata(await cachedJSON(configPath));
+    const fromSidecar = sidecarMetadata(await cachedJSON(sidecarPath));
     const fromHeader = await safetensorsHeader(repo, resourcePath).catch(() => null) || {};
+    const readmeTriggers = extractTriggerWords(readme);
+    const triggers = [...new Set([...(fromSidecar.triggerWords || []), ...readmeTriggers])].slice(0, 20);
+    const readmeWeight = extractWeight(readme);
+    const weightMin = fromSidecar.weight ?? readmeWeight[0];
+    const weightMax = fromSidecar.weight ?? readmeWeight[1];
     const rank = fromConfig.rank ?? fromHeader.rank ?? null;
     const alpha = fromConfig.alpha ?? fromHeader.alpha ?? null;
     const targetModules = fromConfig.targetModules?.length ? fromConfig.targetModules : (fromHeader.targetModules || []);
     const networkType = fromConfig.networkType || fromHeader.networkType || null;
     const baseModel = fromConfig.baseModel || fromHeader.baseModel || text(row.base_model || "Unknown base");
+    const baseFamily = familyFrom(baseModel);
     let confidence = 0.45;
     if (configPath) confidence += 0.2;
     if (fromHeader.rank || fromHeader.alpha || fromHeader.networkType) confidence += 0.15;
@@ -179,7 +239,8 @@ async function enrichRepo(row) {
     if (treeSha(treeFile)) confidence += 0.05;
     confidence = Math.min(1, Math.round(confidence * 100) / 100);
     const id = `${repo}:${resourcePath}`;
-    updates.push(`UPDATE lora_resources SET size_mb=${sqlNum(treeSize(treeFile))}, sha256=${treeSha(treeFile) ? sqlText(treeSha(treeFile)) : "sha256"}, base_model=${sqlText(baseModel)}, trigger_words=${sqlText(JSON.stringify(triggers))}, recommended_weight_min=${sqlNum(weightMin)}, recommended_weight_max=${sqlNum(weightMax)}, lora_rank=${sqlNum(rank)}, alpha=${sqlNum(alpha)}, target_modules=${sqlText(JSON.stringify(targetModules))}, network_type=${networkType ? sqlText(networkType) : "network_type"}, has_examples=${hasExamples}, metadata_confidence=${confidence}, enriched_at=datetime('now') WHERE id=${sqlText(id)};`);
+    const hash = treeSha(treeFile);
+    updates.push(`UPDATE lora_resources SET size_mb=${sqlNum(treeSize(treeFile))}, sha256=${hash ? sqlText(hash) : "sha256"}, base_model=${sqlText(baseModel)}, base_family=${sqlText(baseFamily)}, trigger_words=${sqlText(JSON.stringify(triggers))}, recommended_weight_min=${sqlNum(weightMin)}, recommended_weight_max=${sqlNum(weightMax)}, lora_rank=${sqlNum(rank)}, alpha=${sqlNum(alpha)}, target_modules=${sqlText(JSON.stringify(targetModules))}, network_type=${networkType ? sqlText(networkType) : "network_type"}, has_examples=${hasExamples}, metadata_confidence=${confidence}, enriched_at=datetime('now') WHERE id=${sqlText(id)};`);
   }
   return updates;
 }
