@@ -12,10 +12,16 @@ function searchQueryForEngine(input: string) {
 
   // The ranked SQL deliberately searches many model/resource fields. Keep a
   // browser query compact so one request cannot create an excessive number of
-  // bound parameters; longer natural-language queries still retain their most
-  // important leading concepts.
+  // bound parameters. Preserve structured/base-model terms first so a useful
+  // trailing constraint such as "SDXL" is not lost from a long phrase.
   const tokens = spaced.match(/"[^"]+"|'[^']+'|\S+/g) || [];
-  return tokens.slice(0, 3).join(" ");
+  const important = tokens.filter((token) =>
+    /^(author|base|trigger|file|repo|hash|type|purpose):/i.test(token) ||
+    /^(qwen|llama|gemma|flux|wan\d*|ltx|sdxl|sd3(?:\.5)?|sd1\.5|sd15|pony|illustrious)$/i.test(token) ||
+    /^(日本語|和文|キャラクター|キャラ|なりきり|ロールプレイ|画像|画像生成|イラスト|動画|映像|音声|音楽|アニメ|写真|実写)$/.test(token)
+  );
+  const compact = [...important, ...tokens].filter((token, index, list) => list.indexOf(token) === index);
+  return compact.slice(0, 3).join(" ");
 }
 
 // Keep /api/models as the stable browser endpoint, while the dedicated search
