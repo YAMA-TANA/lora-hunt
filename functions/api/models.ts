@@ -36,13 +36,14 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   if (!response.ok) return response;
 
   const payload = await response.json() as Record<string, unknown>;
-  const models = Array.isArray(payload.models) ? payload.models as Array<Record<string, unknown>> : [];
+  const allModels = Array.isArray(payload.models) ? payload.models as Array<Record<string, unknown>> : [];
+  // Live Hub discovery remains available from /api/search. The browser list is
+  // intentionally limited to indexed models because only indexed entries have
+  // generated local detail pages and community review targets.
+  const models = allModels.filter((model) => model.source !== "hub-live");
 
   payload.models = models.map((model) => ({
     ...model,
-    // Live Hub discoveries do not have generated local detail pages. Point the
-    // existing title link at a redirect route that lands on the real HF repo.
-    slug: model.source === "hub-live" ? `hub/${String(model.id || "")}` : model.slug,
     // Keep the browser's legacy literal query filter from discarding ranked
     // semantic/resource matches. The original purpose remains intact first.
     purpose: originalQuery ? `${String(model.purpose || "General")} ${originalQuery}` : model.purpose,
@@ -51,6 +52,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       ? Number(model.search_score || 0) * 1_000_000 + Number(model.quality_score || 0)
       : Number(model.quality_score || 0)
   }));
+  payload.total = Number(payload.indexedTotal || models.length);
+  payload.liveCount = 0;
 
   return json(payload);
 };
